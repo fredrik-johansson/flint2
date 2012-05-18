@@ -19,29 +19,37 @@
 =============================================================================*/
 /******************************************************************************
 
-    Copyright (C) 2011 Sebastian Pancratz
-    Copyright (C) 2008, 2009 William Hart
+   Copyright (C) 2012 Thomas M. DuBuisson
 
 ******************************************************************************/
 
-#include <mpir.h>
-#include <stdlib.h>
-#include "flint.h"
 #include "fmpz.h"
-#include "fmpz_mod_poly.h"
 
-void fmpz_mod_poly_set_coeff_ui(fmpz_mod_poly_t poly, long n, ulong x)
+void fmpz_complement(fmpz_t r, const fmpz_t f)
 {
-    fmpz_mod_poly_fit_length(poly, n + 1);
-
-    if (n + 1 > poly->length)
+    if (!COEFF_IS_MPZ(*f)) /* f is small */
     {
-        mpn_zero((mp_ptr) (poly->coeffs + poly->length), n - poly->length);
-        poly->length = n + 1;
+	long res = ~(*f);
+	fmpz_set_si(r, res);
+    } else /* f is big */
+    {
+        if(r != f) { /* not aliased */
+            __mpz_struct *ptr, *ptr2;
+            ptr = _fmpz_promote(r);
+            ptr2 = COEFF_TO_PTR(*f);
+            mpz_com(ptr, ptr2);
+            _fmpz_demote_val(r);
+        } else { /* alaised */
+            fmpz_t tmp;
+            fmpz_init(tmp);
+            __mpz_struct *ptr, *ptr2;
+            ptr = _fmpz_promote(tmp);
+            ptr2 = COEFF_TO_PTR(*f);
+            mpz_com(ptr, ptr2);
+            _fmpz_demote_val(tmp);
+            fmpz_set(r,tmp);
+            fmpz_clear(tmp);
+        }
     }
-
-    fmpz_set_ui(poly->coeffs + n, x);
-    fmpz_mod(poly->coeffs + n, poly->coeffs + n, &(poly->p));
-    _fmpz_mod_poly_normalise(poly);
 }
 

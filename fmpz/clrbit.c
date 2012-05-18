@@ -19,29 +19,28 @@
 =============================================================================*/
 /******************************************************************************
 
-    Copyright (C) 2011 Sebastian Pancratz
-    Copyright (C) 2008, 2009 William Hart
+   Copyright (C) 2012 Sebastian Pancratz
 
 ******************************************************************************/
 
-#include <mpir.h>
-#include <stdlib.h>
-#include "flint.h"
 #include "fmpz.h"
-#include "fmpz_mod_poly.h"
 
-void fmpz_mod_poly_set_coeff_ui(fmpz_mod_poly_t poly, long n, ulong x)
+void fmpz_clrbit(fmpz_t f, ulong i)
 {
-    fmpz_mod_poly_fit_length(poly, n + 1);
-
-    if (n + 1 > poly->length)
+    if (!COEFF_IS_MPZ(*f))
     {
-        mpn_zero((mp_ptr) (poly->coeffs + poly->length), n - poly->length);
-        poly->length = n + 1;
+        if (i < FLINT_BITS - 2)
+        {
+            *f &= ~(1L << i);
+        }
+        /* i >= FLINT_BITS  --> nop */
     }
+    else
+    {
+        __mpz_struct *ptr = COEFF_TO_PTR(*f);
 
-    fmpz_set_ui(poly->coeffs + n, x);
-    fmpz_mod(poly->coeffs + n, poly->coeffs + n, &(poly->p));
-    _fmpz_mod_poly_normalise(poly);
+        mpz_clrbit(ptr, i);
+        _fmpz_demote_val(f);
+    }
 }
 

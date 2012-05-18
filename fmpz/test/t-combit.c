@@ -19,29 +19,65 @@
 =============================================================================*/
 /******************************************************************************
 
-    Copyright (C) 2011 Sebastian Pancratz
-    Copyright (C) 2008, 2009 William Hart
+    Copyright (C) 2009 William Hart
+    Copyright (C) 2012 Sebastian Pancratz
 
 ******************************************************************************/
 
-#include <mpir.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <mpir.h>
 #include "flint.h"
+#include "ulong_extras.h"
 #include "fmpz.h"
-#include "fmpz_mod_poly.h"
 
-void fmpz_mod_poly_set_coeff_ui(fmpz_mod_poly_t poly, long n, ulong x)
+int
+main(void)
 {
-    fmpz_mod_poly_fit_length(poly, n + 1);
+    int i, result;
+    flint_rand_t state;
 
-    if (n + 1 > poly->length)
+    printf("combit....");
+    fflush(stdout);
+
+    flint_randinit(state);
+
+    for (i = 0; i < 100000; i++)
     {
-        mpn_zero((mp_ptr) (poly->coeffs + poly->length), n - poly->length);
-        poly->length = n + 1;
+        ulong j;
+        fmpz_t a;
+        mpz_t b, c;
+
+        fmpz_init(a);
+        mpz_init(b);
+        mpz_init(c);
+
+        fmpz_randtest(a, state, 2 * FLINT_BITS);
+        fmpz_get_mpz(b, a);
+        j = n_randint(state, 3 * FLINT_BITS);
+
+        fmpz_combit(a, j);
+        mpz_combit(b, j);
+        fmpz_get_mpz(c, a);
+
+        result = (mpz_cmp(b, c) == 0);
+
+        if (!result)
+        {
+            printf("FAIL:\n");
+            printf("a = "), fmpz_print(a), printf("\n");
+            gmp_printf("b = %Zd\n", b);
+            printf("j = %ld\n", j);
+            abort();
+        }
+
+        fmpz_clear(a);
+        mpz_clear(c);
+        mpz_clear(b);
     }
 
-    fmpz_set_ui(poly->coeffs + n, x);
-    fmpz_mod(poly->coeffs + n, poly->coeffs + n, &(poly->p));
-    _fmpz_mod_poly_normalise(poly);
+    flint_randclear(state);
+    _fmpz_cleanup();
+    printf("PASS\n");
+    return 0;
 }
-

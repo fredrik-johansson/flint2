@@ -19,19 +19,16 @@
 =============================================================================*/
 /******************************************************************************
 
-    Copyright (C) 2011 Sebastian Pancratz
+    Copyright (C) 2009 William Hart
 
 ******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <mpir.h>
 #include "flint.h"
 #include "ulong_extras.h"
-#include "long_extras.h"
-#include "fmpq.h"
-#include "padic.h"
+#include "fmpz.h"
 
 int
 main(void)
@@ -39,55 +36,82 @@ main(void)
     int i, result;
     flint_rand_t state;
 
-    printf("get_str... ");
+    printf("complement....");
     fflush(stdout);
 
     flint_randinit(state);
 
-    for (i = 0; i < 10000; i++)
+    for (i = 0; i < 100000; i++)
     {
-        fmpz_t p;
-        long N;
-        padic_ctx_t ctx;
+        fmpz_t a, b;
+        mpz_t c, d;
 
-        padic_t x;
-        fmpq_t y;
+        fmpz_init(a);
+        fmpz_init(b);
 
-        char *s, *t;
+        mpz_init(c);
+        mpz_init(d);
 
-        fmpz_init(p);
-        fmpz_set_ui(p, n_randprime(state, 5, 1));
-        N = z_randint(state, 50) + 1;
-        padic_ctx_init(ctx, p, N, PADIC_TERSE);
+        fmpz_randtest(a, state, 200);
 
-        padic_init(x, ctx);
-        fmpq_init(y);
+        fmpz_get_mpz(c, a);
 
-        padic_randtest(x, state, ctx);
-        _padic_get_fmpq(y, x, ctx);
+        fmpz_complement(b, a);
+        mpz_com(c, c);
 
-        s = _padic_get_str(NULL, x, ctx);
-        t = fmpq_get_str(NULL, 10, y);
+        fmpz_get_mpz(d, b);
 
-        result = strcmp(s, t) == 0;
+        result = (mpz_cmp(c, d) == 0);
         if (!result)
         {
-            printf("FAIL:\n\n");
-            printf("x = "), padic_print(x, ctx), printf("\n");
-            printf("y = "), fmpq_clear(y), printf("\n");
+            printf("FAIL (no alias):\n");
+            gmp_printf("c = %Zd, d = %Zd\n", c, d);
             abort();
         }
 
-        free(s);
-        free(t);
-        _padic_clear(x);
-        fmpq_clear(y);
-        padic_ctx_clear(ctx);
+        fmpz_clear(a);
+        fmpz_clear(b);
+
+        mpz_clear(c);
+        mpz_clear(d);
+    }
+
+    /* Check aliasing */
+    for (i = 0; i < 100000; i++)
+    {
+        fmpz_t a;
+        mpz_t c, d;
+
+        fmpz_init(a);
+
+        mpz_init(c);
+        mpz_init(d);
+
+        fmpz_randtest(a, state, 200);
+
+        fmpz_get_mpz(c, a);
+
+        fmpz_complement(a, a);
+        mpz_com(c, c);
+
+        fmpz_get_mpz(d, a);
+
+        result = (mpz_cmp(c, d) == 0);
+        if (!result)
+        {
+            printf("FAIL (aliased):\n");
+            gmp_printf("c = %Zd, d = %Zd\n", c, d);
+            abort();
+        }
+
+        fmpz_clear(a);
+
+        mpz_clear(c);
+        mpz_clear(d);
     }
 
     flint_randclear(state);
     _fmpz_cleanup();
     printf("PASS\n");
-    return EXIT_SUCCESS;
+    return 0;
 }
-

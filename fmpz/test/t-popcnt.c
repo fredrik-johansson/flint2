@@ -19,29 +19,61 @@
 =============================================================================*/
 /******************************************************************************
 
-    Copyright (C) 2011 Sebastian Pancratz
-    Copyright (C) 2008, 2009 William Hart
+    Copyright (C) 2009 William Hart
+    Copyright (C) 2012 Sebastian Pancratz
 
 ******************************************************************************/
 
-#include <mpir.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <mpir.h>
 #include "flint.h"
+#include "ulong_extras.h"
 #include "fmpz.h"
-#include "fmpz_mod_poly.h"
 
-void fmpz_mod_poly_set_coeff_ui(fmpz_mod_poly_t poly, long n, ulong x)
+int
+main(void)
 {
-    fmpz_mod_poly_fit_length(poly, n + 1);
+    int i, result;
+    mp_bitcnt_t r1, r2;
+    flint_rand_t state;
 
-    if (n + 1 > poly->length)
+    printf("popcnt....");
+    fflush(stdout);
+
+    flint_randinit(state);
+
+    for (i = 0; i < 100000; i++)
     {
-        mpn_zero((mp_ptr) (poly->coeffs + poly->length), n - poly->length);
-        poly->length = n + 1;
+        fmpz_t a;
+        mpz_t b;
+
+        fmpz_init(a);
+        mpz_init(b);
+
+        fmpz_randtest(a, state, 2 * FLINT_BITS);
+        fmpz_get_mpz(b, a);
+
+        r1 = fmpz_popcnt(a);
+        r2 = mpz_popcount(b);
+
+        result = r1 == r2;
+
+        if (!result && fmpz_cmp_si(a,0) >= 0)
+        {
+            printf("FAIL:\n");
+            printf("a = "), fmpz_print(a), printf("\n");
+            gmp_printf("b = %Zd\n", b);
+            printf("r1 = %lu  r2 = %lu\n", r1, r2);
+            abort();
+        }
+
+        fmpz_clear(a);
+        mpz_clear(b);
     }
 
-    fmpz_set_ui(poly->coeffs + n, x);
-    fmpz_mod(poly->coeffs + n, poly->coeffs + n, &(poly->p));
-    _fmpz_mod_poly_normalise(poly);
+    flint_randclear(state);
+    _fmpz_cleanup();
+    printf("PASS\n");
+    return 0;
 }
-
