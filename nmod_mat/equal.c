@@ -23,21 +23,19 @@ nmod_mat_equal(const nmod_mat_t mat1, const nmod_mat_t mat2)
     if (mat1->r != mat2->r || mat1->c != mat2->c)
         return 0;
 
-    if (mat1->r == 0 || mat1->c == 0)
+    if (mat1->r == 0 || mat1->c == 0 || mat2->r == 0 || mat2->c == 0)
         return 1;
-
-    for (i = 0; i < mat1->r; i++)
-    {
-        for (j = 0; j < mat1->c; j++)
+    
+    if (mat1->r == mat2->r && mat1->c == mat2->c){
+        
+        for (i = 0; i < mat1->r; i++)
         {
-            if (mat1->rows[i][j] != mat2->rows[i][j])
-                return 0;
+            for (j = 0; j < mat1->c; j++)
+            {
+                if (mat1->rows[i][j] != mat2->rows[i][j])
+                    return 0;
+            }
         }
-
-        /*
-        if (!_nmod_vec_equal(mat1->rows[i], mat2->rows[i], mat1->c))
-            return 0;
-        */
     }
 
     return 1;
