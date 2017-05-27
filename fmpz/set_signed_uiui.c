@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2016 William Hart
+    Copyright (C) 2017 Fredrik Johansson
 
     This file is part of FLINT.
 
@@ -11,16 +11,21 @@
 
 #include <gmp.h>
 #include "flint.h"
+#include "ulong_extras.h"
 #include "fmpz.h"
-#include "fmpz_mpoly.h"
 
-void fmpz_mpoly_get_monomial(ulong * exps, const fmpz_mpoly_t poly, 
-                                           slong n, const fmpz_mpoly_ctx_t ctx)
+void
+fmpz_set_signed_uiui(fmpz_t r, ulong hi, ulong lo)
 {
-   slong m = (poly->bits*ctx->n - 1)/FLINT_BITS + 1;
-   int deg, rev;
-
-   degrev_from_ord(deg, rev, ctx->ord);
-
-   mpoly_get_monomial(exps, poly->exps + m*n, poly->bits, ctx->n, deg, rev);
+    if (((slong) hi) < 0)
+    {
+        hi = -hi - (lo != 0);
+        lo = -lo;
+        fmpz_neg_uiui(r, hi, lo);
+    }
+    else
+    {
+        fmpz_set_uiui(r, hi, lo);
+    }
 }
+

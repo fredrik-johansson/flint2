@@ -44,7 +44,7 @@ _fmpz_mpoly_get_str_pretty(const fmpz * poly, const ulong * exps, slong len,
 
    degs = (ulong *) TMP_ALLOC(n*sizeof(ulong));
       
-   _fmpz_mpoly_max_degrees1(degs, exps, len, bits, n, deg, rev);
+   _fmpz_mpoly_max_degrees(degs, exps, len, bits, n, deg, rev, 1);
 
    for (i = deg; i < n; i++) /* for each max degree */
    {
@@ -78,7 +78,7 @@ _fmpz_mpoly_get_str_pretty(const fmpz * poly, const ulong * exps, slong len,
       }
 
       /* code below expects monomials in opposite order */
-      _fmpz_mpoly_get_monomial(degs, exps + i*N, bits, n, deg, 1 - rev);
+      mpoly_get_monomial(degs, exps + i*N, bits, n, deg, 1 - rev);
 
       first = 1;
 

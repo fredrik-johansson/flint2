@@ -129,13 +129,13 @@ void fmpz_mpoly_add(fmpz_mpoly_t poly1, const fmpz_mpoly_t poly2,
    max_bits = FLINT_MAX(poly2->bits, poly3->bits);
    N = (max_bits*ctx->n - 1)/FLINT_BITS + 1;
    
-   ptr1 = _fmpz_mpoly_unpack_monomials(max_bits, poly2->exps, 
-                                           poly2->bits, ctx->n, poly2->length);
+   ptr1 = mpoly_unpack_monomials(max_bits, poly2->exps, 
+                                           poly2->length, ctx->n, poly2->bits);
 
    free2 = ptr1 != poly2->exps;
 
-   ptr2 = _fmpz_mpoly_unpack_monomials(max_bits, poly3->exps, 
-                                           poly3->bits, ctx->n, poly3->length);
+   ptr2 = mpoly_unpack_monomials(max_bits, poly3->exps, 
+                                           poly3->length, ctx->n, poly3->bits);
 
    free3 = ptr2 != poly3->exps;
 
