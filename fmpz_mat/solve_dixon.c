@@ -10,6 +10,7 @@
 */
 
 #include "fmpz_mat.h"
+#include "fmpq_mat.h"
 
 static mp_limb_t
 find_good_prime_and_invert(nmod_mat_t Ainv,
@@ -86,6 +87,51 @@ mp_limb_t * get_crt_primes(slong * num_primes, const fmpz_mat_t A, mp_limb_t p)
     return primes;
 }
 
+static int
+verify_solution(fmpz_mat_t X, fmpz_t mod, const fmpz_mat_t A, const fmpz_mat_t B)
+{
+    fmpq_mat_t T, U;
+    slong n, cols;
+    int success;
+
+    n = A->r;
+    cols = B->c;
+
+    fmpq_mat_init(T, n, cols);
+    fmpq_mat_init(U, n, cols);
+
+    success = 1;
+
+    if (fmpq_mat_set_fmpz_mat_mod_fmpz(T, X, mod))
+    {
+        slong j, k;
+
+        /* verify A T = B */
+
+        fmpq_mat_mul_r_fmpz_mat(U, A, T);
+
+        for (j = 0; j < n && success; j++)
+        {
+            for (k = 0; k < cols && success; k++)
+            {
+                if (!fmpz_equal(fmpq_numref(fmpq_mat_entry(U, j, k)), fmpz_mat_entry(B, j, k)) ||
+                    !fmpz_is_one(fmpq_denref(fmpq_mat_entry(U, j, k))))
+                {
+                    success = 0;
+                }
+            }
+        }
+    }
+    else
+    {
+        success = 0;
+    }
+
+    fmpq_mat_clear(T);
+    fmpq_mat_clear(U);
+
+    return success;
+}
 
 static void
 _fmpz_mat_solve_dixon(fmpz_mat_t X, fmpz_t mod,
@@ -99,7 +145,7 @@ _fmpz_mat_solve_dixon(fmpz_mat_t X, fmpz_t mod,
     mp_limb_t * crt_primes;
     nmod_mat_t * A_mod;
     nmod_mat_t Ay_mod, d_mod, y_mod;
-    slong i, n, cols, num_primes;
+    slong i, n, cols, num_primes, iter;
 
     n = A->r;
     cols = B->c;
@@ -138,6 +184,7 @@ _fmpz_mat_solve_dixon(fmpz_mat_t X, fmpz_t mod,
 
     fmpz_one(ppow);
 
+    iter = 0;
     while (fmpz_cmp(ppow, bound) <= 0)
     {
         /* y = A^(-1) * d  (mod p) */
@@ -178,6 +225,19 @@ _fmpz_mat_solve_dixon(fmpz_mat_t X, fmpz_t mod,
         _nmod_mat_set_mod(y_mod, p);
         fmpz_mat_sub(d, d, Ay);
         fmpz_mat_scalar_divexact_ui(d, d, p);
+
+        iter++;
+        if (fmpz_bits(bound) > 4 * FLINT_BITS &&
+            (iter & (iter - 1)) == 0 &&
+            fmpz_bits(ppow) < fmpz_bits(bound) / 2)
+        {
+            /*
+             flint_printf("testing at iter %wd, having %wd bits of %wd\n",
+                iter, fmpz_bits(ppow), fmpz_bits(bound));
+            */
+            if (verify_solution(x, ppow, A, B))
+                break;
+        }
     }
 
     fmpz_set(mod, ppow);
