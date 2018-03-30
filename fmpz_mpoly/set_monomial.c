@@ -404,7 +404,7 @@ void _fmpz_mpoly_set_monomial(ulong * exp1, const ulong * exp2,
    break;
    }
 #else
-   switch (poly->bits)
+   switch (bits)
    {
    case 8:
       _fmpz_mpoly_set_monomial_8_32(exp1, exp2, degree, n, deg, rev);
