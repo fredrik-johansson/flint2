@@ -36,7 +36,7 @@
 #endif
 
 
-#define MPOLY_MIN_BITS 8    /* minimum number of bits to pack into */
+#define MPOLY_MIN_BITS (UWORD(8))    /* minimum number of bits to pack into */
 
 typedef enum {
    ORD_LEX, ORD_DEGLEX, ORD_DEGREVLEX
@@ -638,6 +638,14 @@ FLINT_DLL void mpoly_search_monomials(
                 slong lower, slong upper,
                 const ulong * a, slong a_len, const ulong * b, slong b_len,
                                                slong N, const ulong * cmpmask);
+
+FLINT_DLL void mpoly_main_variable_split_LEX(slong * ind, ulong * pexp,
+                                 const ulong * Aexp, slong l1, slong Alen,
+                                  const ulong * mults, slong num, slong Abits);
+
+FLINT_DLL void mpoly_main_variable_split_DEG(slong * ind, ulong * pexp,
+                                  const ulong * Aexp,  slong l1, slong Alen,
+                                            ulong deg, slong num, slong Abits);
 
 FLINT_DLL int mpoly_termexp_fits_si(ulong * exps, slong bits,
                                               slong n, const mpoly_ctx_t mctx);
