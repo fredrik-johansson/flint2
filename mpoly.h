@@ -173,40 +173,72 @@ typedef struct mpoly_heap_s
 } mpoly_heap_s;
 
 /* trees *********************************************************************/
-typedef struct mpoly_rbnode
+
+/* red-black with ui keys */
+typedef struct {
+    ulong key;
+    slong up;
+    slong left;
+    slong right;
+    int color;
+} mpoly_rbnode_ui_struct;
+
+typedef struct {
+    slong length;
+    mpoly_rbnode_ui_struct * nodes;
+    slong node_alloc;
+    char * data;
+    slong data_alloc;
+    slong data_size;
+} mpoly_rbtree_ui_struct;
+
+typedef mpoly_rbtree_ui_struct mpoly_rbtree_ui_t[1];
+
+FLINT_DLL void mpoly_rbtree_ui_init(mpoly_rbtree_ui_t T, slong data_size);
+
+FLINT_DLL void mpoly_rbtree_ui_clear(mpoly_rbtree_ui_t T);
+
+FLINT_DLL void * mpoly_rbtree_ui_lookup(mpoly_rbtree_ui_t T, int * its_new,
+                                                                    ulong key);
+
+MPOLY_INLINE slong mpoly_rbtree_ui_head(const mpoly_rbtree_ui_t T)
 {
-    struct mpoly_rbnode * up;
-    struct mpoly_rbnode * left;
-    struct mpoly_rbnode * right;
-    void * data;
-    void * data2;
-    slong key;
-    int col;
-} mpoly_rbnode_struct;
+    FLINT_ASSERT(T->nodes[1].left >= 0 || T->length < 1);
+    return T->nodes[1].left;
+}
 
-typedef mpoly_rbnode_struct mpoly_rbnode_t[1];
+/* red-black with fmpz keys */
+typedef struct {
+    fmpz_t key;
+    slong up;
+    slong left;
+    slong right;
+    int color;
+} mpoly_rbnode_fmpz_struct;
 
-typedef struct mpoly_rbtree
+typedef struct {
+    slong length;
+    mpoly_rbnode_fmpz_struct * nodes;
+    slong node_alloc;
+    char * data;
+    slong data_alloc;
+    slong data_size;
+} mpoly_rbtree_fmpz_struct;
+
+typedef mpoly_rbtree_fmpz_struct mpoly_rbtree_fmpz_t[1];
+
+FLINT_DLL void mpoly_rbtree_fmpz_init(mpoly_rbtree_fmpz_t T, slong data_size);
+
+FLINT_DLL void mpoly_rbtree_fmpz_clear(mpoly_rbtree_fmpz_t T);
+
+FLINT_DLL void * mpoly_rbtree_fmpz_lookup(mpoly_rbtree_fmpz_t T, int * its_new,
+                                                             const fmpz_t key);
+
+MPOLY_INLINE slong mpoly_rbtree_fmpz_head(const mpoly_rbtree_fmpz_t T)
 {
-    slong size;
-    mpoly_rbnode_t head;  /* dummy node for pointer to head */
-    mpoly_rbnode_t null;  /* dummy node to be pointed to by leaves */
-} mpoly_rbtree_struct;
-
-typedef mpoly_rbtree_struct mpoly_rbtree_t[1];
-
-FLINT_DLL void mpoly_rbtree_init(mpoly_rbtree_t tree);
-
-FLINT_DLL void mpoly_rbnode_clear(mpoly_rbtree_t tree, mpoly_rbnode_t node,
-                                void ** dataout, slong * keysout, slong * idx);
-
-FLINT_DLL void mpoly_rbtree_clear(mpoly_rbtree_t tree, void ** dataout, slong * keysout);
-
-FLINT_DLL mpoly_rbnode_struct * mpoly_rbtree_get(int * new_node,
-                                         struct mpoly_rbtree *tree, slong rcx);
-
-FLINT_DLL mpoly_rbnode_struct * mpoly_rbtree_get_fmpz(int * new_node,
-                                        struct mpoly_rbtree *tree, fmpz_t rcx);
+    FLINT_ASSERT(T->nodes[1].left >= 0 || T->length < 1);
+    return T->nodes[1].left;
+}
 
 /* Orderings *****************************************************************/
 
@@ -1058,6 +1090,16 @@ FLINT_DLL flint_bitcnt_t mpoly_exp_bits_required_ffmpz(const fmpz * user_exp,
 FLINT_DLL flint_bitcnt_t mpoly_exp_bits_required_pfmpz(fmpz * const * user_exp,
                                                        const mpoly_ctx_t mctx);
 
+MPOLY_INLINE
+flint_bitcnt_t mpoly_gen_pow_exp_bits_required(slong v, ulong e,
+                                                        const mpoly_ctx_t mctx)
+{
+    return 1 + FLINT_BIT_COUNT(e); /* only lex and deg supported */
+}
+
+FLINT_DLL int mpoly_is_poly(const ulong * Aexps, slong Alen,
+                      flint_bitcnt_t Abits, slong var, const mpoly_ctx_t mctx);
+
 FLINT_DLL void mpoly_pack_vec_ui(ulong * exp1, const ulong * exp2,
                                 flint_bitcnt_t bits, slong nfields, slong len);
 FLINT_DLL void mpoly_pack_vec_fmpz(ulong * exp1, const fmpz * exp2,
@@ -1220,6 +1262,9 @@ FLINT_DLL void mpoly_total_degree_fmpz(fmpz_t totdeg, const ulong * exps,
 
 FLINT_DLL void mpoly_total_degree_fmpz_ref(fmpz_t totdeg, const ulong * exps,
                                 slong len, flint_bitcnt_t bits, const mpoly_ctx_t mctx);
+
+FLINT_DLL void mpoly_used_vars_or(int * used, const ulong * exps,
+                       slong len, flint_bitcnt_t bits, const mpoly_ctx_t mctx);
 
 FLINT_DLL int mpoly_monomial_cmp_general(ulong * Aexp, flint_bitcnt_t Abits,
                    ulong * Bexp, flint_bitcnt_t Bbits, const mpoly_ctx_t mctx);
@@ -1659,7 +1704,63 @@ int _mpoly_heap_insert(mpoly_heap_s * heap, ulong * exp, void * x,
    return 1;
 }
 
-/* Parsing *******************************************************************/
+/* generic parsing ***********************************************************/
+
+typedef struct {
+    char * coeffs;
+    fmpz * exps;
+    slong length;
+    slong alloc;
+} mpoly_univar_struct;
+
+typedef mpoly_univar_struct mpoly_univar_t[1];
+
+typedef struct {
+    slong elem_size;
+    const void * ctx;
+    void (*init)(void *, const void *);
+    void (*clear)(void *, const void *);
+    int (*is_zero)(const void *, const void *);
+    void (*zero)(void *, const void *);
+    void (*one)(void *, const void *);
+    void (*set_fmpz)(void *, const fmpz_t, const void *);
+    void (*set)(void *, const void *, const void *);
+    void (*swap)(void *, void *, const void *);
+    void (*neg)(void *, const void *, const void *);
+    void (*add)(void *, const void *, const void *, const void *);
+    void (*sub)(void *, const void *, const void *, const void *);
+    void (*mul_fmpz)(void *, const void *, const fmpz_t, const void *);
+    void (*mul)(void *, const void *, const void *, const void *);
+    void (*divexact)(void *, const void *, const void *, const void *);
+    int (*divides)(void *, const void *, const void *, const void *);
+    int (*pow_fmpz)(void *, const void *, const fmpz_t, const void *);
+    slong (*length)(const void *, const void *);
+} mpoly_void_ring_t[1];
+
+FLINT_DLL void * mpoly_void_ring_elem_init(mpoly_void_ring_t R);
+
+FLINT_DLL void mpoly_void_ring_elem_clear(void * a, mpoly_void_ring_t R);
+
+FLINT_DLL void mpoly_univar_init(mpoly_univar_t A, mpoly_void_ring_t R);
+
+FLINT_DLL void mpoly_univar_clear(mpoly_univar_t A, mpoly_void_ring_t R);
+
+FLINT_DLL void mpoly_univar_swap(mpoly_univar_t A, mpoly_univar_t B);
+
+FLINT_DLL void mpoly_univar_fit_length(mpoly_univar_t A, slong len,
+                                                          mpoly_void_ring_t R);
+
+FLINT_DLL void mpoly_univar_init2(mpoly_univar_t A, slong len,
+                                                          mpoly_void_ring_t R);
+
+FLINT_DLL int mpoly_univar_pseudo_gcd_ducos(mpoly_univar_t G,
+                      mpoly_univar_t B, mpoly_univar_t A, mpoly_void_ring_t R);
+
+FLINT_DLL int mpoly_univar_resultant(void * r, mpoly_univar_t fx,
+                                       mpoly_univar_t gx, mpoly_void_ring_t R);
+
+FLINT_DLL int mpoly_univar_discriminant(void * d, mpoly_univar_t fx,
+                                                          mpoly_void_ring_t R);
 
 typedef struct {
     char * str;
@@ -1667,20 +1768,7 @@ typedef struct {
 } string_with_length_struct;
 
 typedef struct {
-    const void * ctx;
-    slong sz;
-    void (*init_fxn)(void *, const void *);
-    void (*clear_fxn)(void *, const void *);
-    void (*swap_fxn)(void *, void *, const void *);
-    void (*set_fxn)(void *, const void *, const void *);
-    void (*set_fmpz_fxn)(void *, const fmpz_t, const void *);
-    int (*pow_fmpz_fxn)(void *, const void *, const fmpz_t, const void *);
-    void (*mul_fxn)(void *, const void *, const void *, const void *);
-    void (*add_fxn)(void *, const void *, const void *, const void *);
-    void (*sub_fxn)(void *, const void *, const void *, const void *);
-    void (*neg_fxn)(void *, const void *, const void *);
-    int (*div_fxn)(void *, const void *, const void *, const void *);
-    slong (*length_fxn)(const void *, const void *);
+    mpoly_void_ring_t R;
     slong * stack;
     slong stack_len;
     slong stack_alloc;
@@ -1692,19 +1780,19 @@ typedef struct {
     char * terminal_values;
     slong terminals_alloc;
     slong terminals_len;
-} fparse_struct;
+} mpoly_parse_struct;
 
-typedef fparse_struct fparse_t[1];
+typedef mpoly_parse_struct mpoly_parse_t[1];
 
-FLINT_DLL void fparse_init(fparse_t E, void (*init_fxn)(void *, const void *),
-                                                   slong sz, const void * ctx);
+FLINT_DLL void mpoly_parse_init(mpoly_parse_t E);
 
-FLINT_DLL void fparse_clear(fparse_t E);
+FLINT_DLL void mpoly_parse_clear(mpoly_parse_t E);
 
-FLINT_DLL void fparse_add_terminal(fparse_t E, const char * s, const void * v);
+FLINT_DLL void mpoly_parse_add_terminal(mpoly_parse_t E,
+                                               const char * s, const void * v);
 
-FLINT_DLL int fparse_parse(fparse_t E, void * res, const char * s, slong len);
-
+FLINT_DLL int mpoly_parse_parse(mpoly_parse_t E, void * res,
+                                                    const char * s, slong len);
 
 /* chunking */
 

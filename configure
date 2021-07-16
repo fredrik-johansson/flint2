@@ -10,7 +10,7 @@ GMP_DIR="/usr/local"
 MPFR_DIR="/usr/local"
 NTL_DIR="/usr/local"
 GC_DIR="/usr/local"
-BLAS_DIR="/usr/local"
+BLAS_DIR="/usr"
 WANT_NTL=0
 WANT_BLAS=0
 SHARED=1
@@ -54,10 +54,11 @@ FLINT_SOLIB=0
 # 2.6.2 => 14.0.2
 # 2.6.3 => 14.0.3
 # 2.7.0 => 15.0.0
-# 2.7.1 =? 15.0.1
+# 2.7.1 => 15.0.1
+# 2.8.0 => 16.1.0
 
-FLINT_MAJOR=15
-FLINT_MINOR=0
+FLINT_MAJOR=16
+FLINT_MINOR=1
 FLINT_PATCH=0
 
 usage()
@@ -70,7 +71,7 @@ usage()
    echo "     --with-mpir=<path>   Specify location of MPIR (default: /usr/local)"
    echo "     --with-gmp=<path>    Specify location of GMP (default: /usr/local)"
    echo "     --with-mpfr=<path>   Specify location of MPFR (default: /usr/local)"
-   echo "     --with-blas[=<path>] Use BLAS and specify its location (default: /usr/local)"
+   echo "     --with-blas[=<path>] Use BLAS and specify its location (default: /usr)"
    echo "     --without-blas       Do not use BLAS (default)"
    echo "     --with-ntl[=<path>]  Build NTL interface and specify its location (default: /usr/local)"
    echo "     --without-ntl        Do not build NTL interface (default)"
@@ -298,7 +299,13 @@ if [ "$WANT_NTL" = "1" ]; then
 fi
 
 if [ "$WANT_BLAS" = "1" ]; then
-   if [ -d "${BLAS_DIR}" ]; then
+   if [ -d "${BLAS_DIR}/lib/x86_64-linux-gnu/openblas-pthread" ]; then
+      BLAS_LIB_DIR="${BLAS_DIR}/lib/x86_64-linux-gnu"
+      BLAS_INC_DIR="${BLAS_DIR}/include/x86_64-linux-gnu"
+   elif [ -d "${BLAS_DIR}/lib" ]; then
+      BLAS_LIB_DIR="${BLAS_DIR}/lib"
+      BLAS_INC_DIR="${BLAS_DIR}/include"
+   elif [ -d "${BLAS_DIR}" ]; then
       BLAS_LIB_DIR="${BLAS_DIR}"
       BLAS_INC_DIR="${BLAS_DIR}"
    else
@@ -680,6 +687,25 @@ else
 fi
 rm -f build/test-fenv.h
 
+CONFIG_BIG_ENDIAN="#define FLINT_BIG_ENDIAN 0"
+
+mkdir -p build
+MSG="Testing big endian..."
+printf "%s" "$MSG"
+printf "%s" "MSG" >> config.log
+echo "int main(int argc, char ** argv){ union { unsigned int i; char c[4]; } be_int = {0x01020304}; return be_int.c[0] == 1; }" > build/test-endian.c
+$CC build/test-endian.c -o ./build/test-endian > /dev/null 2>&1
+build/test-endian > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+  printf "%s\n" "no"
+  echo "no" >> config.log
+else
+  printf "%s\n" "yes"
+  echo "yes" >> config.log
+  CONFIG_BIG_ENDIAN="#define FLINT_BIG_ENDIAN 1"
+fi
+rm -f build/test-endian{,.c}
+
 #pthread configuration
 
 CONFIG_PTHREAD="#define FLINT_USES_PTHREAD ${PTHREAD}"
@@ -759,6 +785,7 @@ echo "$CONFIG_BLAS" >> flint-config.h
 echo "$CONFIG_TLS" >> flint-config.h
 echo "$CONFIG_FENV" >> flint-config.h
 echo "$CONFIG_PTHREAD" >> flint-config.h
+echo "$CONFIG_BIG_ENDIAN" >> flint-config.h
 echo "$CONFIG_GC" >> flint-config.h
 echo "$CONFIG_CPU_SET_T" >> flint-config.h
 echo "#define FLINT_REENTRANT $REENTRANT" >> flint-config.h

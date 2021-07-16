@@ -61,7 +61,8 @@ FLINT_DLL void fmpz_mod_mat_clear(fmpz_mod_mat_t mat);
 
 /* Basic manipulation  ********************************************************/
 
-FMPZ_MOD_MAT_INLINE                                                                      slong fmpz_mod_mat_nrows(const fmpz_mod_mat_t mat)
+FMPZ_MOD_MAT_INLINE
+slong fmpz_mod_mat_nrows(const fmpz_mod_mat_t mat)
 {
     return fmpz_mat_nrows(mat->mat);
 }
@@ -115,20 +116,17 @@ void fmpz_mod_mat_swap(fmpz_mod_mat_t mat1, fmpz_mod_mat_t mat2)
     }
 }
 
-FMPZ_MOD_MAT_INLINE
-void _fmpz_mod_mat_reduce(fmpz_mod_mat_t mat)
+FMPZ_MOD_MAT_INLINE void
+fmpz_mod_mat_swap_entrywise(fmpz_mod_mat_t mat1, fmpz_mod_mat_t mat2)
 {
     slong i, j;
-    fmpz *entry;
-    for (i = 0; i < mat->mat->r; i++)
-    {
-        for (j = 0; j < mat->mat->c; j++)
-        {
-            entry = fmpz_mod_mat_entry(mat, i, j);
-            fmpz_mod(entry, entry, mat->mod);
-        }
-    }
+
+    for (i = 0; i < fmpz_mod_mat_nrows(mat1); i++)
+        for (j = 0; j < fmpz_mod_mat_ncols(mat1); j++)
+            fmpz_swap(fmpz_mod_mat_entry(mat2, i, j), fmpz_mod_mat_entry(mat1, i, j));
 }
+
+FLINT_DLL void _fmpz_mod_mat_reduce(fmpz_mod_mat_t mat);
 
 /* Random matrix generation */
 FLINT_DLL void fmpz_mod_mat_randtest(fmpz_mod_mat_t mat, flint_rand_t state);
@@ -190,6 +188,11 @@ void fmpz_mod_mat_transpose(fmpz_mod_mat_t B, const fmpz_mod_mat_t A)
     fmpz_mat_transpose(B->mat, A->mat);
 }
 
+/* Conversions */
+
+FLINT_DLL void fmpz_mod_mat_set_fmpz_mat(fmpz_mod_mat_t A, const fmpz_mat_t B);
+
+FLINT_DLL void fmpz_mod_mat_get_fmpz_mat(fmpz_mat_t A, const fmpz_mod_mat_t B);
 
 /* Addition and subtraction */
 
@@ -219,6 +222,18 @@ FLINT_DLL void fmpz_mod_mat_mul_classical_threaded(fmpz_mod_mat_t C,
                                const fmpz_mod_mat_t A, const fmpz_mod_mat_t B);
 
 FLINT_DLL void fmpz_mod_mat_sqr(fmpz_mod_mat_t B, const fmpz_mod_mat_t A);
+
+FLINT_DLL void fmpz_mod_mat_mul_fmpz_vec(fmpz * c, const fmpz_mod_mat_t A,
+                                                   const fmpz * b, slong blen);
+
+FLINT_DLL void fmpz_mod_mat_mul_fmpz_vec_ptr(fmpz * const * c,
+                   const fmpz_mod_mat_t A, const fmpz * const * b, slong blen);
+
+FLINT_DLL void fmpz_mod_mat_fmpz_vec_mul(fmpz * c, const fmpz * a, slong alen,
+                                                       const fmpz_mod_mat_t B);
+
+FLINT_DLL void fmpz_mod_mat_fmpz_vec_mul_ptr(fmpz * const * c,
+                   const fmpz * const * a, slong alen, const fmpz_mod_mat_t B);
 
 /* Trace */
 

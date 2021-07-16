@@ -36,7 +36,7 @@ main(void)
         m = n_randint(state, 10);
         n = m;
 
-        mod = n_randprime(state, 6, 0);
+        mod = n_randtest_not_zero(state);
 
         nmod_mat_init(A, m, n, mod);
         nmod_mat_init(B, m, n, mod);
@@ -80,7 +80,7 @@ main(void)
         m = n_randint(state, 10);
         n = m;
 
-        mod = n_randprime(state, 6, 0);
+        mod = n_randtest_not_zero(state);
 
         nmod_mat_init(A, m, n, mod);
         nmod_poly_init(f, mod);
@@ -89,7 +89,7 @@ main(void)
         nmod_mat_randtest(A, state);
 
         nmod_mat_charpoly(f, A);
-        
+
         for (i = 0; i < 10; i++)
            nmod_mat_similarity(A, n_randint(state, m), n_randint(state, mod));
 

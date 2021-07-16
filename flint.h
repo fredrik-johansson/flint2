@@ -292,6 +292,7 @@ typedef __mpfr_struct flint_mpfr;
 #define FLINT_MIN(x, y) ((x) > (y) ? (y) : (x))
 #define FLINT_ABS(x) ((slong)(x) < 0 ? (-(x)) : (x))
 #define FLINT_SIGN_EXT(x) (-(ulong)((slong)(x) < 0))
+#define FLINT_SGN(x) ((0 < (slong)(x)) - ((slong)(x) < 0))
 
 #define MP_PTR_SWAP(x, y) \
     do { \
@@ -320,6 +321,13 @@ typedef __mpfr_struct flint_mpfr;
         mp_limb_t __t_m_p_ = A; \
         A = B;                  \
         B = __t_m_p_;           \
+    } while (0)
+
+#define DOUBLE_SWAP(A, B)    \
+    do {                     \
+        double __t_m_p_ = A; \
+        A = B;               \
+        B = __t_m_p_;        \
     } while (0)
 
 #define r_shift(in, shift) \

@@ -192,6 +192,8 @@ FLINT_DLL slong fmpz_get_si(const fmpz_t f);
 
 FLINT_DLL ulong fmpz_get_ui(const fmpz_t f);
 
+FLINT_DLL mp_limb_t fmpz_get_nmod(const fmpz_t f, nmod_t mod);
+
 FMPZ_INLINE void
 fmpz_get_uiui(mp_limb_t * hi, mp_limb_t * low, const fmpz_t f)
 {
@@ -290,15 +292,19 @@ fmpz_neg_uiui(fmpz_t f, mp_limb_t hi, mp_limb_t lo)
     }
 }
 
+FLINT_DLL void fmpz_get_signed_uiui(ulong * hi, ulong * lo, const fmpz_t x);
+
 FLINT_DLL void fmpz_set_signed_uiui(fmpz_t r, ulong hi, ulong lo);
 
 FLINT_DLL void fmpz_set_signed_uiuiui(fmpz_t r, ulong hi, ulong mid, ulong lo);
 
-FLINT_DLL void fmpz_set_ui_array(fmpz_t out, const ulong * in, slong in_len);
+FLINT_DLL void fmpz_get_ui_array(ulong * out, slong n, const fmpz_t in);
 
-FLINT_DLL void fmpz_get_ui_array(ulong * out, slong out_len, const fmpz_t in);
+FLINT_DLL void fmpz_set_ui_array(fmpz_t out, const ulong * in, slong n);
 
-FLINT_DLL void fmpz_set_signed_ui_array(fmpz_t out, const ulong * in, slong in_len);
+FLINT_DLL void fmpz_get_signed_ui_array(ulong * out, slong n, const fmpz_t in);
+
+FLINT_DLL void fmpz_set_signed_ui_array(fmpz_t out, const ulong * in, slong n);
 
 FLINT_DLL void fmpz_get_mpz(mpz_t x, const fmpz_t f);
 
@@ -594,7 +600,7 @@ FLINT_DLL void fmpz_sqrt(fmpz_t f, const fmpz_t g);
 
 FLINT_DLL int fmpz_is_square(const fmpz_t f);
 
-FLINT_DLL void fmpz_root(fmpz_t r, const fmpz_t f, slong n);
+FLINT_DLL int fmpz_root(fmpz_t r, const fmpz_t f, slong n);
 
 FLINT_DLL int fmpz_is_perfect_power(fmpz_t root, const fmpz_t f);
 
@@ -621,12 +627,16 @@ fmpz_negmod(fmpz_t r, const fmpz_t a, const fmpz_t mod)
 }
 
 FLINT_DLL void fmpz_gcd(fmpz_t f, const fmpz_t g, const fmpz_t h);
+FLINT_DLL void fmpz_gcd3(fmpz_t f, const fmpz_t a, const fmpz_t b, const fmpz_t c);
 
 FLINT_DLL void fmpz_lcm(fmpz_t f, const fmpz_t g, const fmpz_t h);
 
 FLINT_DLL void fmpz_gcdinv(fmpz_t d, fmpz_t a, const fmpz_t f, const fmpz_t g);
 
 FLINT_DLL void fmpz_xgcd(fmpz_t d, fmpz_t a, fmpz_t b, const fmpz_t f, const fmpz_t g);
+
+FLINT_DLL void fmpz_xgcd_canonical_bezout(fmpz_t d, fmpz_t a, fmpz_t b,
+                                            const fmpz_t f, const fmpz_t g);
 
 FLINT_DLL void fmpz_xgcd_partial(fmpz_t co2, fmpz_t co1, 
                                        fmpz_t r2, fmpz_t r1, const fmpz_t L);
@@ -651,6 +661,8 @@ FLINT_DLL void fmpz_divexact_si(fmpz_t f, const fmpz_t g, slong h);
 FLINT_DLL void fmpz_divexact_ui(fmpz_t f, const fmpz_t g, ulong h);
 
 FLINT_DLL int fmpz_divisible(const fmpz_t f, const fmpz_t g);
+
+FLINT_DLL int fmpz_divides(fmpz_t q, const fmpz_t g, const fmpz_t h);
 
 FLINT_DLL int fmpz_divisible_si(const fmpz_t f, slong g);
 
@@ -698,6 +710,8 @@ FLINT_DLL void fmpz_tdiv_r_2exp(fmpz_t f, const fmpz_t g, ulong exp);
 FLINT_DLL ulong fmpz_tdiv_ui(const fmpz_t g, ulong h);
 
 FLINT_DLL void fmpz_tdiv_q_2exp(fmpz_t f, const fmpz_t g, ulong exp);
+
+FLINT_DLL void fmpz_ndiv_qr(fmpz_t q, fmpz_t r, const fmpz_t a, const fmpz_t b);
 
 FLINT_DLL void fmpz_preinvn_init(fmpz_preinvn_t inv, const fmpz_t f);
 

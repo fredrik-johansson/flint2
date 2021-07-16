@@ -15,6 +15,7 @@
 #include "flint.h"
 #include "templates.h"
 #include "ulong_extras.h"
+#include "fmpz_mod_mat.h"
 
 #ifdef __cplusplus
  extern "C" {
@@ -38,33 +39,18 @@ FLINT_DLL void TEMPLATE(T, mat_init)(TEMPLATE(T, mat_t) mat, slong rows, slong c
 FLINT_DLL void TEMPLATE(T, mat_init_set)(TEMPLATE(T, mat_t) mat, const TEMPLATE(T, mat_t) src,
                           const TEMPLATE(T, ctx_t) ctx);
 
-FLINT_DLL void TEMPLATE(T, mat_swap)(TEMPLATE(T, mat_t) mat1, TEMPLATE(T, mat_t) mat2,
-                      const TEMPLATE(T, ctx_t) ctx);
-
-FLINT_DLL void TEMPLATE(T, mat_set)(TEMPLATE(T, mat_t) mat1, const TEMPLATE(T, mat_t) mat2,
-                     const TEMPLATE(T, ctx_t) ctx);
-
-FLINT_DLL void TEMPLATE(T, mat_clear)(TEMPLATE(T, mat_t) mat, const TEMPLATE(T, ctx_t) ctx);
-
-FLINT_DLL int TEMPLATE(T, mat_equal)(const TEMPLATE(T, mat_t) mat1,
-                       const TEMPLATE(T, mat_t) mat2,
-                       const TEMPLATE(T, ctx_t) ctx);
-
-FLINT_DLL int TEMPLATE(T, mat_is_zero)(const TEMPLATE(T, mat_t) mat,
-                         const TEMPLATE(T, ctx_t) ctx);
-
-FQ_MAT_TEMPLATES_INLINE int
-TEMPLATE(T, mat_is_empty)(const TEMPLATE(T, mat_t) mat,
-                          const TEMPLATE(T, ctx_t) ctx)
+FQ_MAT_TEMPLATES_INLINE slong
+TEMPLATE(T, mat_nrows)(const TEMPLATE(T, mat_t) mat ,
+                       const TEMPLATE(T, ctx_t) ctx)
 {
-    return (mat->r == 0) || (mat->c == 0);
+    return mat->r;
 }
 
-FQ_MAT_TEMPLATES_INLINE int
-TEMPLATE(T, mat_is_square)(const TEMPLATE(T, mat_t) mat,
-                           const TEMPLATE(T, ctx_t) ctx)
+FQ_MAT_TEMPLATES_INLINE slong
+TEMPLATE(T, mat_ncols)(const TEMPLATE(T, mat_t) mat,
+                       const TEMPLATE(T, ctx_t) ctx)
 {
-    return (mat->r == mat->c);
+    return mat->c;
 }
 
 FQ_MAT_TEMPLATES_INLINE TEMPLATE(T, struct) *
@@ -81,18 +67,48 @@ TEMPLATE(T, mat_entry_set)(TEMPLATE(T, mat_t) mat, slong i, slong j,
     TEMPLATE(T, set)(TEMPLATE(T, mat_entry)(mat, i, j), x, ctx);
 }
 
-FQ_MAT_TEMPLATES_INLINE slong
-TEMPLATE(T, mat_nrows)(const TEMPLATE(T, mat_t) mat ,
-                       const TEMPLATE(T, ctx_t) ctx)
+FLINT_DLL void TEMPLATE(T, mat_swap)(TEMPLATE(T, mat_t) mat1, TEMPLATE(T, mat_t) mat2,
+                      const TEMPLATE(T, ctx_t) ctx);
+
+FQ_MAT_TEMPLATES_INLINE void
+TEMPLATE(T, mat_swap_entrywise)(TEMPLATE(T, mat_t) mat1,
+		         TEMPLATE(T, mat_t) mat2, const TEMPLATE(T, ctx_t) ctx)
 {
-    return mat->r;
+    slong i, j;
+
+    for (i = 0; i < TEMPLATE(T, mat_nrows)(mat1, ctx); i++)
+        for (j = 0; j < TEMPLATE(T, mat_ncols)(mat1, ctx); j++)
+            TEMPLATE(T, swap)(TEMPLATE(T, mat_entry)(mat2, i, j),
+			      TEMPLATE(T, mat_entry)(mat1, i, j), ctx);
 }
 
-FQ_MAT_TEMPLATES_INLINE slong
-TEMPLATE(T, mat_ncols)(const TEMPLATE(T, mat_t) mat,
-                       const TEMPLATE(T, ctx_t) ctx)
+FLINT_DLL void TEMPLATE(T, mat_set)(TEMPLATE(T, mat_t) mat1, const TEMPLATE(T, mat_t) mat2,
+                     const TEMPLATE(T, ctx_t) ctx);
+
+FLINT_DLL void TEMPLATE(T, mat_clear)(TEMPLATE(T, mat_t) mat, const TEMPLATE(T, ctx_t) ctx);
+
+FLINT_DLL int TEMPLATE(T, mat_equal)(const TEMPLATE(T, mat_t) mat1,
+                       const TEMPLATE(T, mat_t) mat2,
+                       const TEMPLATE(T, ctx_t) ctx);
+
+FLINT_DLL int TEMPLATE(T, mat_is_zero)(const TEMPLATE(T, mat_t) mat,
+                         const TEMPLATE(T, ctx_t) ctx);
+
+FLINT_DLL int TEMPLATE(T, mat_is_one)(const TEMPLATE(T, mat_t) mat,
+		                         const TEMPLATE(T, ctx_t) ctx);
+
+FQ_MAT_TEMPLATES_INLINE int
+TEMPLATE(T, mat_is_empty)(const TEMPLATE(T, mat_t) mat,
+                          const TEMPLATE(T, ctx_t) ctx)
 {
-    return mat->c;
+    return (mat->r == 0) || (mat->c == 0);
+}
+
+FQ_MAT_TEMPLATES_INLINE int
+TEMPLATE(T, mat_is_square)(const TEMPLATE(T, mat_t) mat,
+                           const TEMPLATE(T, ctx_t) ctx)
+{
+    return (mat->r == mat->c);
 }
 
 FQ_MAT_TEMPLATES_INLINE void
@@ -179,6 +195,16 @@ TEMPLATE(T, mat_invert_cols)(TEMPLATE(T, mat_t) mat, slong * perm, const TEMPLAT
 /* Assignment  ***************************************************************/
 
 FLINT_DLL void TEMPLATE(T, mat_zero)(TEMPLATE(T, mat_t) A, const TEMPLATE(T, ctx_t) ctx);
+
+FLINT_DLL void TEMPLATE(T, mat_one)(TEMPLATE(T, mat_t) A, const TEMPLATE(T, ctx_t) ctx);
+
+/* Conversions ***************************************************************/
+
+FLINT_DLL void TEMPLATE(T, mat_set_nmod_mat) (TEMPLATE(T, mat_t) mat1,
+                          const nmod_mat_t mat2, const TEMPLATE(T, ctx_t) ctx);
+
+FLINT_DLL void TEMPLATE(T, mat_set_fmpz_mod_mat) (TEMPLATE(T, mat_t) mat1,
+                      const fmpz_mod_mat_t mat2, const TEMPLATE(T, ctx_t) ctx);
 
 /* Windows and concatenation */
 
@@ -352,6 +378,26 @@ FLINT_DLL void TEMPLATE(T, mat_solve_triu_recursive)(TEMPLATE(T, mat_t) X,
                                       const TEMPLATE(T, mat_t) B,
                                       int unit,
                                       const TEMPLATE(T, ctx_t) ctx);
+
+FLINT_DLL void TEMPLATE(T, mat_mul_vec)(TEMPLATE(T, struct) * c,
+                                    const TEMPLATE(T, mat_t) A,
+                                    const TEMPLATE(T, struct) * b, slong blen,
+                                    const TEMPLATE(T, ctx_t) ctx);
+
+FLINT_DLL void TEMPLATE(T, mat_mul_vec_ptr)(TEMPLATE(T, struct) * const * c,
+                            const TEMPLATE(T, mat_t) A,
+                            const TEMPLATE(T, struct) * const * b, slong blen,
+                            const TEMPLATE(T, ctx_t) ctx);
+
+FLINT_DLL void TEMPLATE(T, mat_vec_mul)(TEMPLATE(T, struct) * c,
+                                    const TEMPLATE(T, struct) * a, slong alen,
+                                    const TEMPLATE(T, mat_t) B,
+                                    const TEMPLATE(T, ctx_t) ctx);
+
+FLINT_DLL void TEMPLATE(T, mat_vec_mul_ptr)(TEMPLATE(T, struct) * const * c,
+                            const TEMPLATE(T, struct) * const * a, slong alen,
+                            const TEMPLATE(T, mat_t) B,
+                            const TEMPLATE(T, ctx_t) ctx);
 
 /* Nonsingular solving *******************************************************/
 

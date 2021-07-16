@@ -8,77 +8,87 @@ Types, macros and constants
 
 .. type:: fmpz
 
-   an fmpz is implemented as an slong. When its second most significant bit 
-   is 0 the fmpz represents an ordinary slong integer whose absolute
-   value is at most FLINT_BITS - 2 bits.
+   an ``fmpz`` is implemented as an `slong`. When its second most significant
+   bit is `0` the ``fmpz`` represents an ordinary ``slong`` integer whose
+   absolute value is at most ``FLINT_BITS - 2`` bits.
 
-   When the second most significant bit is 1 then the value represents a 
-   pointer (the pointer is shifted right 2 bits and the second msb is set
-   to 1 - this relies on the fact that malloc always allocates memory
-   blocks on a 4 or 8 byte boundary).
+   When the second most significant bit is `1` then the value represents a 
+   pointer (the pointer is shifted right `2` bits and the second most
+   significant bit is set to `1`. This relies on the fact that ``malloc`` always
+   allocates memory blocks on a `4` or `8` byte boundary).
 
 .. type:: fmpz_t
 
-   An array of length 1 of fmpz's. This is used to pass fmpz's around by
-   reference without fuss, similar to the way mpz_t's work.
+   An array of length 1 of ``fmpz``'s. This is used to pass ``fmpz``'s around by
+   reference without fuss, similar to the way ``mpz_t`` work.
 
 .. macro:: COEFF_MAX
  
-   the largest (positive) value an fmpz can be if just an slong
+   the largest (positive) value an ``fmpz`` can be if just an ``slong``.
 
 .. macro:: COEFF_MIN
  
-   the smallest (negative) value an fmpz can be if just an slong
+   the smallest (negative) value an ``fmpz`` can be if just an ``slong``.
 
 .. function:: fmpz PTR_TO_COEFF(__mpz_struct * ptr)
 
-   a macro to convert an mpz_t (or more generally any ``__mpz_struct *``) to an 
-   fmpz (shifts the pointer right by 2 and sets the second most significant 
-   bit). 
+   a macro to convert an ``mpz_t`` (or more generally any ``__mpz_struct *``)
+   to an ``fmpz`` (shifts the pointer right by `2` and sets the second most
+   significant bit). 
 
 .. function:: __mpz_struct * COEFF_TO_PTR(fmpz f)
 
-   a macro to convert an fmpz which represents a pointer into an actual 
-   pointer to an __mpz_struct (i.e. to an mpz_t)
+   a macro to convert an ``fmpz`` which represents a pointer into an actual 
+   pointer to an ``__mpz_struct`` (i.e. to an ``mpz_t``).
 
 .. function:: int COEFF_IS_MPZ(fmpz f)
 
-   a macro which returns 1 if f represents an mpz_t, otherwise 0 is returned.
+   a macro which returns `1` if `f` represents an ``mpz_t``, otherwise `0` is
+   returned.
 
 .. function:: __mpz_struct * _fmpz_new_mpz(void)
 
-   initialises a new mpz_t and returns a pointer to it. This is only used 
+   initialises a new ``mpz_t`` and returns a pointer to it. This is only used 
    internally.
 
 .. function:: void _fmpz_clear_mpz(fmpz f)
 
-   clears the mpz_t "pointed to" by the fmpz f. This is only used internally.
+   clears the ``mpz_t`` "pointed to" by the ``fmpz`` `f`. This is only used
+   internally.
 
 .. function:: void _fmpz_cleanup_mpz_content()
 
-   this function does nothing in the reentrant version of fmpz.
+   this function does nothing in the reentrant version of ``fmpz``.
 
 .. function:: void _fmpz_cleanup()
 
-   this function does nothing in the reentrant version of fmpz.
+   this function does nothing in the reentrant version of ``fmpz``.
 
 .. function:: __mpz_struct * _fmpz_promote(fmpz_t f)
 
-   if f doesn't represent an mpz_t, initialise one and associate it to f.
+   if `f` doesn't represent an ``mpz_t``, initialise one and associate it to
+   `f`.
 
 .. function:: __mpz_struct * _fmpz_promote_val(fmpz_t f)
 
-   if f doesn't represent an mpz_t, initialise one and associate it to f, but
-   preserve the value of f.
+   if `f` doesn't represent an ``mpz_t``, initialise one and associate it to
+   `f`, but preserve the value of `f`.
+
+   This function is for internal use. The resulting ``fmpz`` will be backed by
+   an ``mpz_t`` that can be passed to GMP, but the ``fmpz`` will be in an
+   inconsistent state with respect to the other Flint ``fmpz`` functions such as
+   ``fmpz_is_zero``, etc.
 
 .. function:: void _fmpz_demote(fmpz_t f)
 
-   if f represents an mpz_t clear it and make f just represent an slong.
+   if `f` represents an ``mpz_t`` clear it and make `f` just represent an
+   ``slong``.
 
 .. function:: void _fmpz_demote_val(fmpz_t f)
 
-   if f represents an mpz_t and its value will fit in an slong, preserve the 
-   value in f which we make to represent an slong, and clear the mpz_t.
+   if `f` represents an ``mpz_t`` and its value will fit in an ``slong``,
+   preserve the value in `f` which we make to represent an ``slong``, and
+   clear the ``mpz_t``.
 
 
 Memory management
@@ -197,15 +207,19 @@ Conversion
 
 .. function:: void fmpz_get_uiui(mp_limb_t * hi, mp_limb_t * low, const fmpz_t f)
 
-    If ``f`` consists of two limbs, then `*hi` and `*low` are set to the high
-    and low limbs, otherwise `*low` is set to the low limb and `*hi` is set
-    to 0.
+    If `f` consists of two limbs, then ``*hi`` and ``*low`` are set to the high
+    and low limbs, otherwise ``*low`` is set to the low limb and ``*hi`` is set
+    to `0`.
+
+.. function:: mp_limb_t fmpz_get_nmod(const fmpz_t f, nmod_t mod)
+
+    Returns `f \mod n`.
 
 .. function:: double fmpz_get_d(const fmpz_t f)
 
     Returns `f` as a ``double``, rounding down towards zero if
-    ``f`` cannot be represented exactly. The outcome is undefined
-    if ``f`` is too large to fit in the normal range of a double.
+    `f` cannot be represented exactly. The outcome is undefined
+    if `f` is too large to fit in the normal range of a double.
 
 .. function:: void fmpz_set_mpf(fmpz_t f, const mpf_t x)
 
@@ -214,17 +228,17 @@ Conversion
 
 .. function:: void fmpz_get_mpf(mpf_t x, const fmpz_t f)
 
-    Sets the value of ``x`` from ``f``.
+    Sets the value of the ``mpf_t`` `x` to the value of `f`.
 
 .. function:: void fmpz_get_mpfr(mpfr_t x, const fmpz_t f, mpfr_rnd_t rnd)
 
-    Sets the value of ``x`` from ``f``, rounded toward the given
+    Sets the value of `x` from `f`, rounded toward the given
     direction ``rnd``.
 
 .. function:: double fmpz_get_d_2exp(slong * exp, const fmpz_t f)
 
     Returns `f` as a normalized ``double`` along with a `2`-exponent 
-    ``exp``, i.e.\ if `r` is the return value then ``f = r * 2^exp``, 
+    ``exp``, i.e.\ if `r` is the return value then `f = r 2^{exp}`, 
     to within 1 ULP.
 
 .. function:: void fmpz_get_mpz(mpz_t x, const fmpz_t f)
@@ -233,9 +247,9 @@ Conversion
 
 .. function:: int fmpz_get_mpn(mp_ptr *n, fmpz_t n_in)
 
-    Sets the ``mp_ptr`` `n` to the same value as `n_in`. Returned
+    Sets the ``mp_ptr`` `n` to the same value as `n_{in}`. Returned
     integer is number of limbs allocated to `n`, minimum number of limbs
-    required to hold the value stored in `n_in`.
+    required to hold the value stored in `n_{in}`.
 
 .. function:: char * fmpz_get_str(char * str, int b, const fmpz_t f)
 
@@ -262,7 +276,7 @@ Conversion
 
 .. function:: void fmpz_set_d_2exp(fmpz_t f, double d, slong exp)
 
-    Sets `f` to the nearest integer to ``d*2^(exp)``.
+    Sets `f` to the nearest integer to `d 2^{exp}`.
 
 .. function:: void fmpz_neg_ui(fmpz_t f, ulong val)
 
@@ -291,26 +305,37 @@ Conversion
     ``2*FLINT_BITS`` bits, interpreted as a signed two's complement
     integer with ``3 * FLINT_BITS`` bits.
 
-.. function:: void fmpz_set_ui_array(fmpz_t out, const ulong * in, slong in_len)
+.. function:: void fmpz_set_ui_array(fmpz_t out, const ulong * in, slong n)
 
     Sets ``out`` to the nonnegative integer
-    ``in[0] + in[1]*X  + ... + in[in_len - 1]*X^(in_len - 1)``
-    where ``X = 2^FLINT_BITS``. It is assumed that ``in_len > 0``.
+    ``in[0] + in[1]*X  + ... + in[n - 1]*X^(n - 1)``
+    where ``X = 2^FLINT_BITS``. It is assumed that ``n > 0``.
 
-.. function:: void fmpz_set_signed_ui_array(fmpz_t out, const ulong * in, slong in_len)
+.. function:: void fmpz_set_signed_ui_array(fmpz_t out, const ulong * in, slong n)
 
-    Sets ``out`` to the integer represented in ``in[0], ..., in[in_len - 1]``
-    as a signed two's complement integer with ``in_len * FLINT_BITS`` bits.
-    It is assumed that ``in_len > 0``. The function operates as a call to
+    Sets ``out`` to the integer represented in ``in[0], ..., in[n - 1]``
+    as a signed two's complement integer with ``n * FLINT_BITS`` bits.
+    It is assumed that ``n > 0``. The function operates as a call to
     :func:`fmpz_set_ui_array` followed by a symmetric remainder modulo
-    ``2*(in_len*FLINT_BITS)``.
+    `2^(n*FLINT\_BITS)`.
 
-.. function:: void fmpz_get_ui_array(ulong * out, slong out_len, const fmpz_t in)
+.. function:: void fmpz_get_ui_array(ulong * out, slong n, const fmpz_t in)
 
     Assuming that the nonnegative integer ``in`` can be represented in the
-    form ``out[0] + out[1]*X + ... + out[out_len - 1]*X^(out_len - 1)``,
+    form ``out[0] + out[1]*X + ... + out[n - 1]*X^(n - 1)``,
     where `X = 2^{FLINT\_BITS}`, sets the corresponding elements of ``out``
-    so that this is true. It is assumed that ``out_len > 0``.
+    so that this is true. It is assumed that ``n > 0``.
+
+.. function::void fmpz_get_signed_ui_array(ulong * out, slong n, const fmpz_t in)
+
+    Retrieves the value of `in` modulo `2^{n * FLINT\_BITS}` and puts the `n`
+    words of the result in ``out[0], ..., out[n-1]``. This will give a signed
+    two's complement representation of `in` (assuming `in` doesn't overflow the array).
+
+.. function::void fmpz_get_signed_uiui(ulong * hi, ulong * lo, const fmpz_t in)
+
+    Retrieves the value of `in` modulo `2^{2 * FLINT\_BITS}` and puts the high
+    and low words into ``*hi`` and ``*lo`` respectively.
 
 .. function:: void fmpz_set_mpz(fmpz_t f, const mpz_t x)
 
@@ -802,6 +827,12 @@ Basic arithmetic
     Sets `f` to `g` divided by ``2^exp``, rounding down towards
     zero.
 
+.. function:: void fmpz_ndiv_qr(fmpz_t q, fmpz_t r, const fmpz_t a, const fmpz_t b)
+
+    Sets `q` to the quotient of `a` by `b`, rounding towards the nearest
+    integer where ties rounds towards zero and sets `r` to the remainder.
+    If `b` is `0` an exception is raised.
+
 .. function:: void fmpz_divexact(fmpz_t f, const fmpz_t g, const fmpz_t h)
 
     Sets `f` to the quotient of `g` and `h`, assuming that the
@@ -829,6 +860,11 @@ Basic arithmetic
 .. function:: int fmpz_divisible(const fmpz_t f, const fmpz_t g)
 
     Returns `1` if there is an integer `q` with `f = q g` and `0` if not.
+
+.. function:: int fmpz_divides(fmpz_t q, const fmpz_t g, const fmpz_t h)
+
+    Returns `1` if there is an integer `q` with `f = q g` and sets `q` to the
+    quotient. Otherwise returns `0` and sets `q` to `0`.
 
 .. function:: int fmpz_divisible_si(const fmpz_t f, slong g)
 
@@ -941,11 +977,12 @@ Basic arithmetic
 
     Returns nonzero if `f` is a perfect square and zero otherwise.
 
-.. function:: void fmpz_root(fmpz_t r, const fmpz_t f, slong n)
+.. function:: int fmpz_root(fmpz_t r, const fmpz_t f, slong n)
 
     Set `r` to the integer part of the `n`-th root of `f`. Requires that
     `n > 0` and that if `n` is even then `f` be non-negative, otherwise an 
-    exception is raised.
+    exception is raised. The function returns `1` if the root was exact,
+    otherwise `0`.
 
 .. function:: int fmpz_is_perfect_power(fmpz_t root, const fmpz_t f)
 
@@ -1002,6 +1039,11 @@ Greatest common divisor
     result is always positive, even if one of `g` and `h` is
     negative.
 
+.. function:: void fmpz_gcd3(fmpz_t f, const fmpz_t a, const fmpz_t b, const fmpz_t c)
+
+    Sets `f` to the greatest common divisor of `a`, `b` and `c`.
+    This is equivalent to calling ``fmpz_gcd`` twice, but may be faster.
+
 .. function:: void fmpz_lcm(fmpz_t f, const fmpz_t g, const fmpz_t h)
 
     Sets `f` to the least common multiple of `g` and `h`.  The 
@@ -1021,8 +1063,42 @@ Greatest common divisor
     Computes the extended GCD of `f` and `g`, i.e. values `a` and `b`
     such that `af + bg = d`, where `d = \gcd(f, g)`. 
 
-    Assumes that `d` is not aliased with `a` or `b` and that `a` and `b`
-    are not aliased.
+    Assumes that there is no aliasing among the outputs.
+
+.. function:: void fmpz_xgcd_canonical_bezout(fmpz_t d, fmpz_t a, fmpz_t b, const fmpz_t f, const fmpz_t g)
+
+    Computes the extended GCD `\operatorname{xgcd}(f, g) = (d, a, b)` such that
+    the solution is the canonical solution to Bézout's identity. We define the
+    canonical solution to satisfy one of the following if one of the given
+    conditions apply:
+
+    .. math ::
+
+        \newcommand{\xgcd}{\operatorname{xgcd}}
+        \newcommand{\sgn}{\operatorname{sgn}}
+        \begin{align*}
+            \xgcd(\pm g, g) &= \bigl(|g|, 0, \sgn(g)\bigr)\\
+            \xgcd(f, 0) &= \bigl(|f|, \sgn(f), 0\bigr)\\
+            \xgcd(0, g) &= \bigl(|g|, 0, \sgn(g)\bigr)\\
+            \xgcd(f, \mp 1) &= (1, 0, \mp 1)\\
+            \xgcd(\mp 1, g) &= (1, \mp 1, 0)\quad g \neq 0, \pm 1\\
+            \xgcd(\mp 2 d, g) &=
+                \bigl(d, {\textstyle\frac{d - |g|}{\mp 2 d}}, \sgn(g)\bigr)\\
+            \xgcd(f, \mp 2 d) &=
+                \bigl(d, \sgn(f), {\textstyle\frac{d - |g|}{\mp 2 d}}\bigr).
+        \end{align*}
+
+    If the pair `(f, g)` does not satisfy any of these conditions, the solution
+    `(d, a, b)` will satisfy the following:
+
+    .. math ::
+
+        \begin{equation*}
+            |a| < \Bigl| \frac{g}{2 d} \Bigr|,
+            \qquad |b| < \Bigl| \frac{f}{2 d} \Bigr|.
+        \end{equation*}
+
+    Assumes that there is no aliasing among the outputs.
 
 .. function:: void fmpz_xgcd_partial(fmpz_t co2, fmpz_t co1, fmpz_t r2, fmpz_t r1, const fmpz_t L)
 

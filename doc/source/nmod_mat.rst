@@ -44,6 +44,11 @@ Memory management
 
     Exchanges ``mat1`` and ``mat2``.
 
+.. function:: void nmod_mat_swap_entrywise(nmod_mat_t mat1, nmod_mat_t mat2)
+
+    Swaps two matrices by swapping the individual entries rather than swapping
+    the contents of the structs.
+
 
 Basic properties and manipulation
 --------------------------------------------------------------------------------
@@ -331,6 +336,20 @@ Matrix multiplication
     Sets `D = C + AB`. `C` and `D` may be aliased with each other but
     not with `A` or `B`.
 
+.. function:: void nmod_mat_mul_nmod_vec(mp_limb_t * c, const nmod_mat_t A, const mp_limb_t * b, slong blen)
+              void nmod_mat_mul_nmod_vec_ptr(mp_limb_t * const * c, const nmod_mat_t A, const mp_limb_t * const * b, slong blen)
+
+    Compute a matrix-vector product of ``A`` and ``(b, blen)`` and store the result in ``c``.
+    The vector ``(b, blen)`` is either truncated or zero-extended to the number of columns of ``A``.
+    The number entries written to ``c`` is always equal to the number of rows of ``A``.
+
+.. function:: void nmod_mat_nmod_vec_mul(mp_limb_t * c, const mp_limb_t * a, slong alen, const nmod_mat_t B)
+              void nmod_mat_nmod_vec_mul_ptr(mp_limb_t * const * c, const mp_limb_t * const * a, slong alen, const nmod_mat_t B)
+
+    Compute a vector-matrix product of ``(a, alen)`` and ``B`` and and store the result in ``c``.
+    The vector ``(a, alen)`` is either truncated or zero-extended to the number of rows of ``B``.
+    The number entries written to ``c`` is always equal to the number of columns of ``B``.
+
 
 Matrix Exponentiation
 --------------------------------------------------------------------------------
@@ -359,12 +378,15 @@ Trace
 Determinant and rank
 --------------------------------------------------------------------------------
 
+.. function:: mp_limb_t nmod_mat_det_howell(const nmod_mat_t A)
 
-.. function:: mp_limb_t nmod_mat_det(nmod_mat_t A)
+    Returns the determinant of `A`.
 
-    Returns the determinant of `A`. The modulus of `A` must be a prime number.
+.. function:: mp_limb_t nmod_mat_det(const nmod_mat_t A)
 
-.. function:: slong nmod_mat_rank(nmod_mat_t A)
+    Returns the determinant of `A`.
+
+.. function:: slong nmod_mat_rank(const nmod_mat_t A)
 
     Returns the rank of `A`. The modulus of `A` must be a prime number.
 
@@ -619,15 +641,13 @@ Transforms
 Characteristic polynomial
 --------------------------------------------------------------------------------
 
-.. function:: void nmod_mat_charpoly_danilevsky(nmod_poly_t p, const nmod_mat_t M)
-
-    Compute the characteristic polynomial `p` of the matrix `M`. The matrix
-    is assumed to be square.
-
-.. function:: void nmod_mat_charpoly(nmod_poly_t p, const nmod_mat_t M)
+.. function:: void nmod_mat_charpoly_berkowitz(nmod_poly_t p, const nmod_mat_t M)
+              void nmod_mat_charpoly_danilevsky(nmod_poly_t p, const nmod_mat_t M)
+              void nmod_mat_charpoly(nmod_poly_t p, const nmod_mat_t M)
 
     Compute the characteristic polynomial `p` of the matrix `M`. The matrix
     is required to be square, otherwise an exception is raised.
+    The *danilevsky* algorithm assumes that the modulus is prime.
 
 
 Minimal polynomial

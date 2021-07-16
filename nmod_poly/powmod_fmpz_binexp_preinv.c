@@ -29,9 +29,8 @@
 #include "ulong_extras.h"
 
 void
-_nmod_poly_powmod_fmpz_binexp_preinv (mp_ptr res, mp_srcptr poly,
-                                    fmpz_t e, mp_srcptr f, slong lenf,
-                                    mp_srcptr finv, slong lenfinv, nmod_t mod)
+_nmod_poly_powmod_fmpz_binexp_preinv (mp_ptr res, mp_srcptr poly, fmpz_t e,
+            mp_srcptr f, slong lenf, mp_srcptr finv, slong lenfinv, nmod_t mod)
 {
     mp_ptr T, Q;
     slong lenT, lenQ;
@@ -39,30 +38,30 @@ _nmod_poly_powmod_fmpz_binexp_preinv (mp_ptr res, mp_srcptr poly,
 
     if (lenf == 2)
     {
-        /* n = ndivg * g. Compute (poly[0]%ndivg)^e mod ndivg and use CRT */	
+        /* n = ndivg * g. Compute (poly[0]%ndivg)^e mod ndivg and use CRT */        
         if (fmpz_abs_fits_ui(e))
-	{
-	   ulong e_ui = fmpz_get_ui(e);
+        {
+           ulong e_ui = fmpz_get_ui(e);
 
-	   res[0] = n_powmod2_ui_preinv(poly[0], e_ui, mod.n, mod.ninv);
+           res[0] = n_powmod2_ui_preinv(poly[0], e_ui, mod.n, mod.ninv);
         } else
-	{
+        {
            fmpz_t p0, nf;
 
-	   fmpz_init_set_ui(p0, poly[0]);
+           fmpz_init_set_ui(p0, poly[0]);
            fmpz_init_set_ui(nf, mod.n);
 
-	   fmpz_powm(p0, p0, e, nf);
-	   res[0] = fmpz_get_ui(p0);
+           fmpz_powm(p0, p0, e, nf);
+           res[0] = fmpz_get_ui(p0);
 
-	   fmpz_clear(p0);
-	   fmpz_clear(nf);
-	}
+           fmpz_clear(p0);
+           fmpz_clear(nf);
+        }
 
         return;
     }
 
-    lenT = 2 * lenf - 3;
+    lenT = 2*lenf - 3;
     lenQ = FLINT_MAX(lenT - lenf + 1, 1);
 
     T = _nmod_vec_init(lenT + lenQ);
@@ -74,14 +73,16 @@ _nmod_poly_powmod_fmpz_binexp_preinv (mp_ptr res, mp_srcptr poly,
     for (i = bits - 2; i >= 0; i--)
     {
         _nmod_poly_mul(T, res, lenf - 1, res, lenf - 1, mod);
-        _nmod_poly_divrem_newton_n_preinv(Q, res, T, 2 * lenf - 3, f,
-                                          lenf, finv, lenfinv, mod);
+
+        _nmod_poly_divrem_newton_n_preinv(Q, res, T, 2*lenf - 3, f,
+                                                     lenf, finv, lenfinv, mod);
 
         if (fmpz_tstbit(e, i))
         {
             _nmod_poly_mul(T, res, lenf - 1, poly, lenf - 1, mod);
+
             _nmod_poly_divrem_newton_n_preinv(Q, res, T, 2 * lenf - 3, f,
-                                              lenf, finv, lenfinv, mod);
+                                                     lenf, finv, lenfinv, mod);
         }
     }
 
@@ -90,9 +91,8 @@ _nmod_poly_powmod_fmpz_binexp_preinv (mp_ptr res, mp_srcptr poly,
 
 
 void
-nmod_poly_powmod_fmpz_binexp_preinv(nmod_poly_t res, 
-                           const nmod_poly_t poly, fmpz_t e,
-                           const nmod_poly_t f, const nmod_poly_t finv)
+nmod_poly_powmod_fmpz_binexp_preinv(nmod_poly_t res, const nmod_poly_t poly,
+                         fmpz_t e, const nmod_poly_t f, const nmod_poly_t finv)
 {
     mp_ptr p;
     slong len = poly->length;
@@ -115,12 +115,17 @@ nmod_poly_powmod_fmpz_binexp_preinv(nmod_poly_t res,
     if (len >= lenf)
     {
         nmod_poly_t t, r;
-        nmod_poly_init_preinv(t, res->mod.n, res->mod.ninv);
-        nmod_poly_init_preinv(r, res->mod.n, res->mod.ninv);
+
+        nmod_poly_init_mod(t, res->mod);
+        nmod_poly_init_mod(r, res->mod);
+        
         nmod_poly_divrem(t, r, poly, f);
+        
         nmod_poly_powmod_fmpz_binexp_preinv(res, r, e, f, finv);
+        
         nmod_poly_clear(t);
         nmod_poly_clear(r);
+        
         return;
     }
 
@@ -129,15 +134,14 @@ nmod_poly_powmod_fmpz_binexp_preinv(nmod_poly_t res,
         if (fmpz_is_zero(e))
         {
             nmod_poly_fit_length(res, 1);
-            res->coeffs[0] = UWORD(1);
+
+            res->coeffs[0] = 1;
             res->length = 1;
-        }
-        else if (fmpz_is_one(e))
-        {
+        } else if (fmpz_is_one(e))
             nmod_poly_set(res, poly);
-        }
         else
             nmod_poly_mulmod_preinv(res, poly, poly, f, finv);
+
         return;
     }
 
@@ -150,26 +154,32 @@ nmod_poly_powmod_fmpz_binexp_preinv(nmod_poly_t res,
     if (len < trunc)
     {
         p = _nmod_vec_init(trunc);
+
         flint_mpn_copyi(p, poly->coeffs, len);
         flint_mpn_zero(p + len, trunc - len);
+
         pcopy = 1;
     } else
         p = poly->coeffs;
 
-    if ((res == poly && !pcopy) || (res == f) || (res == finv))
+    if ((res == poly && !pcopy) || res == f || res == finv)
     {
         nmod_poly_t t;
+
         nmod_poly_init2(t, poly->mod.n, trunc);
+
         _nmod_poly_powmod_fmpz_binexp_preinv(t->coeffs,
-            p, e, f->coeffs, lenf, finv->coeffs, finv->length, poly->mod);
+                 p, e, f->coeffs, lenf, finv->coeffs, finv->length, poly->mod);
+
         nmod_poly_swap(res, t);
         nmod_poly_clear(t);
     }
     else
     {
         nmod_poly_fit_length(res, trunc);
+
         _nmod_poly_powmod_fmpz_binexp_preinv(res->coeffs,
-            p, e, f->coeffs, lenf, finv->coeffs, finv->length, poly->mod);
+                 p, e, f->coeffs, lenf, finv->coeffs, finv->length, poly->mod);
     }
 
     if (pcopy)

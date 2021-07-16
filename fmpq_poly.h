@@ -259,26 +259,6 @@ int fmpq_poly_is_gen(const fmpq_poly_t op)
 /* Deprecated */
 #define fmpq_poly_is_x fmpq_poly_is_gen
 
-/*  Inlines, see inlines.c  ************************************************/
-
-FLINT_DLL void fmpq_poly_add_si(fmpq_poly_t res, const fmpq_poly_t poly, slong c);
-
-FLINT_DLL void fmpq_poly_sub_si(fmpq_poly_t res, const fmpq_poly_t poly, slong c);
-
-FLINT_DLL void fmpq_poly_si_sub(fmpq_poly_t res, slong c, const fmpq_poly_t poly);
-
-FLINT_DLL void fmpq_poly_add_fmpz(fmpq_poly_t res, const fmpq_poly_t poly, const fmpz_t c);
-
-FLINT_DLL void fmpq_poly_sub_fmpz(fmpq_poly_t res, const fmpq_poly_t poly, const fmpz_t c);
-
-FLINT_DLL void fmpq_poly_fmpz_sub(fmpq_poly_t res, const fmpz_t c, const fmpq_poly_t poly);
-
-FLINT_DLL void fmpq_poly_add_fmpq(fmpq_poly_t res, const fmpq_poly_t poly, const fmpq_t c);
-
-FLINT_DLL void fmpq_poly_sub_fmpq(fmpq_poly_t res, const fmpq_poly_t poly, const fmpq_t c);
-
-FLINT_DLL void fmpq_poly_fmpq_sub(fmpq_poly_t res, const fmpq_t c, const fmpq_poly_t poly);
-
 /*  Addition and subtraction  ************************************************/
 
 FLINT_DLL void _fmpq_poly_add(fmpz * rpoly, fmpz_t rden, 
@@ -295,7 +275,9 @@ FLINT_DLL void _fmpq_poly_add_can(fmpz * rpoly, fmpz_t rden,
 FLINT_DLL void fmpq_poly_add_can(fmpq_poly_t res, 
                    const fmpq_poly_t poly1, const fmpq_poly_t poly2, int can);
 
-
+FLINT_DLL void fmpq_poly_add_si(fmpq_poly_t res, const fmpq_poly_t poly, slong c);
+FLINT_DLL void fmpq_poly_add_fmpz(fmpq_poly_t res, const fmpq_poly_t poly, const fmpz_t c);
+FLINT_DLL void fmpq_poly_add_fmpq(fmpq_poly_t res, const fmpq_poly_t poly, const fmpq_t c);
 
 FLINT_DLL void _fmpq_poly_add_series(fmpz * rpoly, fmpz_t rden,
                            const fmpz * poly1, const fmpz_t den1, slong len1,
@@ -317,6 +299,13 @@ FLINT_DLL void _fmpq_poly_sub(fmpz * rpoly, fmpz_t rden,
 
 FLINT_DLL void fmpq_poly_sub(fmpq_poly_t res, 
                    const fmpq_poly_t poly1, const fmpq_poly_t poly2);
+
+FLINT_DLL void fmpq_poly_sub_si(fmpq_poly_t res, const fmpq_poly_t poly, slong c);
+FLINT_DLL void fmpq_poly_si_sub(fmpq_poly_t res, slong c, const fmpq_poly_t poly);
+FLINT_DLL void fmpq_poly_sub_fmpz(fmpq_poly_t res, const fmpq_poly_t poly, const fmpz_t c);
+FLINT_DLL void fmpq_poly_fmpz_sub(fmpq_poly_t res, const fmpz_t c, const fmpq_poly_t poly);
+FLINT_DLL void fmpq_poly_sub_fmpq(fmpq_poly_t res, const fmpq_poly_t poly, const fmpq_t c);
+FLINT_DLL void fmpq_poly_fmpq_sub(fmpq_poly_t res, const fmpq_t c, const fmpq_poly_t poly);
 
 FLINT_DLL void _fmpq_poly_sub_can(fmpz * rpoly, fmpz_t rden, 
                     const fmpz * poly1, const fmpz_t den1, slong len1,
@@ -617,6 +606,11 @@ FLINT_DLL void _fmpq_poly_exp_series(fmpz * g, fmpz_t gden,
 
 FLINT_DLL void fmpq_poly_exp_series(fmpq_poly_t res, const fmpq_poly_t poly, slong n);
 
+FLINT_DLL void _fmpq_poly_exp_expinv_series(fmpz * g, fmpz_t gden, fmpz * r, fmpz_t rden,
+                        const fmpz * h, const fmpz_t hden, slong hlen, slong n);
+
+FLINT_DLL void fmpq_poly_exp_expinv_series(fmpq_poly_t res1, fmpq_poly_t res2, const fmpq_poly_t poly, slong n);
+
 FLINT_DLL void _fmpq_poly_atan_series(fmpz * g, fmpz_t gden,
                             const fmpz * h, const fmpz_t hden, slong hlen, slong n);
 
@@ -667,6 +661,12 @@ FLINT_DLL void _fmpq_poly_cosh_series(fmpz * g, fmpz_t gden,
                             const fmpz * h, const fmpz_t hden, slong hlen, slong n);
 
 FLINT_DLL void fmpq_poly_cosh_series(fmpq_poly_t res, const fmpq_poly_t poly, slong n);
+
+FLINT_DLL void _fmpq_poly_sinh_cosh_series(fmpz * s, fmpz_t sden, fmpz * c, fmpz_t cden,
+                            const fmpz * h, const fmpz_t hden, slong hlen, slong n);
+
+FLINT_DLL void fmpq_poly_sinh_cosh_series(fmpq_poly_t res1, fmpq_poly_t res2,
+                            const fmpq_poly_t poly, slong n);
 
 FLINT_DLL void _fmpq_poly_tanh_series(fmpz * g, fmpz_t gden,
                             const fmpz * h, const fmpz_t hden, slong hlen, slong n);

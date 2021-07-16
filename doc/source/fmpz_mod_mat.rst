@@ -79,6 +79,11 @@ Basic manipulation                                                              
 
     Efficiently swap the matrices ``mat1`` and ``mat2``.
 
+.. function:: void fmpz_mod_mat_swap_entrywise(fmpz_mod_mat_t mat1, fmpz_mod_mat_t mat2)
+
+    Swaps two matrices by swapping the individual entries rather than swapping
+    the contents of the structs.
+
 .. function:: int fmpz_mod_mat_is_empty(const fmpz_mod_mat_t mat)
 
     Return `1` if ``mat`` has either zero rows or columns.
@@ -166,6 +171,17 @@ Set and transpose
     Set ``B`` to the transpose of ``A``.
 
 
+Conversions
+-------------------------------------------------------------------------------
+
+.. function:: void fmpz_mod_mat_set_fmpz_mat(fmpz_mod_mat_t A, const fmpz_mat_t B)
+
+    Set ``A`` to the matrix ``B`` reducing modulo the modulus of ``A``.
+
+.. function::  void fmpz_mod_mat_get_fmpz_mat(fmpz_mat_t A, const fmpz_mod_mat_t B)
+
+    Set ``A`` to a lift of ``B``.
+
 Addition and subtraction
 -------------------------------------------------------------------------------
 
@@ -225,6 +241,20 @@ Matrix multiplication
 .. function:: void fmpz_mod_mat_sqr(fmpz_mod_mat_t B, const fmpz_mod_mat_t A)
 
     Set ``B`` to ``A^2``. The matrix ``A`` must be square.
+
+.. function:: void fmpz_mod_mat_mul_fmpz_vec(fmpz * c, const fmpz_mod_mat_t A, const fmpz * b, slong blen)
+              void fmpz_mod_mat_mul_fmpz_vec_ptr(fmpz * const * c, const fmpz_mod_mat_t A, const fmpz * const * b, slong blen)
+
+    Compute a matrix-vector product of ``A`` and ``(b, blen)`` and store the result in ``c``.
+    The vector ``(b, blen)`` is either truncated or zero-extended to the number of columns of ``A``.
+    The number entries written to ``c`` is always equal to the number of rows of ``A``.
+
+.. function:: void fmpz_mod_mat_fmpz_vec_mul(fmpz * c, const fmpz * a, slong alen, const fmpz_mod_mat_t B)
+              void fmpz_mod_mat_fmpz_vec_mul_ptr(fmpz * const * c, const fmpz * const * a, slong alen, const fmpz_mod_mat_t B)
+
+    Compute a vector-matrix product of ``(a, alen)`` and ``B`` and and store the result in ``c``.
+    The vector ``(a, alen)`` is either truncated or zero-extended to the number of rows of ``B``.
+    The number entries written to ``c`` is always equal to the number of columns of ``B``.
 
 
 Trace

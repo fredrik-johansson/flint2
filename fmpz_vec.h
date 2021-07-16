@@ -46,6 +46,26 @@ do {                                          \
     (len2) = __tn;                            \
 } while (0);
 
+/* makes assignment to vec */
+#define FMPZ_VEC_TMP_INIT(vec, len)             \
+do {                                            \
+    fmpz * __vres;                              \
+    slong __vi;                                 \
+    vec = __vres = TMP_ARRAY_ALLOC(len, fmpz);  \
+    for (__vi = (len); __vi > 0; __vi--)        \
+        fmpz_init(__vres + __vi - 1);           \
+} while (0)
+
+#define FMPZ_VEC_TMP_CLEAR(vec, len)        \
+do {                                        \
+    fmpz * __vres = (vec);                  \
+    slong __vi;                             \
+    for (__vi = (len); __vi > 0; __vi--)    \
+        fmpz_clear(__vres + __vi - 1);      \
+} while (0)
+
+
+
 /*  Memory management  *******************************************************/
 
 FLINT_DLL fmpz * _fmpz_vec_init(slong len);
@@ -234,7 +254,7 @@ FLINT_DLL void _fmpz_vec_scalar_smod_fmpz(fmpz *res, const fmpz *vec, slong len,
 
 FLINT_DLL void _fmpz_vec_content(fmpz_t res, const fmpz * vec, slong len);
 
-FLINT_DLL void _fmpz_vec_content_chained(fmpz_t res, const fmpz * vec, slong len);
+FLINT_DLL void _fmpz_vec_content_chained(fmpz_t res, const fmpz * vec, slong len, const fmpz_t inp);
 
 FLINT_DLL void _fmpz_vec_lcm(fmpz_t res, const fmpz * vec, slong len);
 

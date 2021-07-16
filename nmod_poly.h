@@ -840,6 +840,20 @@ FLINT_DLL mp_limb_t _nmod_poly_div_root(mp_ptr Q,
 FLINT_DLL mp_limb_t nmod_poly_div_root(nmod_poly_t Q,
                                              const nmod_poly_t A, mp_limb_t c);
 
+/* Divisibility testing  *****************************************************/
+
+FLINT_DLL int _nmod_poly_divides_classical(mp_ptr Q, mp_srcptr A, slong lenA,
+                                          mp_srcptr B, slong lenB, nmod_t mod);
+
+FLINT_DLL int nmod_poly_divides_classical(nmod_poly_t Q,
+		                     const nmod_poly_t A, const nmod_poly_t B);
+
+FLINT_DLL int _nmod_poly_divides(mp_ptr Q, mp_srcptr A, slong lenA,
+                                          mp_srcptr B, slong lenB, nmod_t mod);
+
+FLINT_DLL int nmod_poly_divides(nmod_poly_t Q,
+		                     const nmod_poly_t A, const nmod_poly_t B);
+
 /* Derivative  ***************************************************************/
 
 FLINT_DLL void _nmod_poly_derivative(mp_ptr x_prime, 
@@ -1310,16 +1324,10 @@ FLINT_DLL void _nmod_poly_exp_series_monomial_ui(mp_ptr res, mp_limb_t coeff,
 FLINT_DLL void nmod_poly_exp_series_monomial_ui(nmod_poly_t res, mp_limb_t coeff,
                 ulong power, slong n);
 
-
-FLINT_DLL void _nmod_poly_exp_series_basecase(mp_ptr f, mp_srcptr h,
-                                    slong hlen, slong n, nmod_t mod);
+FLINT_DLL void _nmod_poly_exp_series_basecase(mp_ptr f, mp_srcptr h, slong hlen, slong n, nmod_t mod);
 FLINT_DLL void nmod_poly_exp_series_basecase(nmod_poly_t f, const nmod_poly_t h, slong n);
-
-FLINT_DLL void  _nmod_poly_exp_expinv_series(mp_ptr f, mp_ptr g, mp_srcptr h, slong n, nmod_t mod);
-
-FLINT_DLL void _nmod_poly_exp_series(mp_ptr f, mp_srcptr h, slong n, nmod_t mod);
-FLINT_DLL void _nmod_poly_exp_series2(mp_ptr f, mp_srcptr h, slong hlen, slong n, nmod_t mod);
-
+FLINT_DLL void  _nmod_poly_exp_expinv_series(mp_ptr f, mp_ptr g, mp_srcptr h, slong hlen, slong n, nmod_t mod);
+FLINT_DLL void _nmod_poly_exp_series(mp_ptr f, mp_srcptr h, slong hlen, slong n, nmod_t mod);
 FLINT_DLL void nmod_poly_exp_series(nmod_poly_t f, const nmod_poly_t h, slong n);
 
 /* Products  *****************************************************************/
@@ -1406,13 +1414,10 @@ FLINT_DLL void nmod_poly_inflate(nmod_poly_t result, const nmod_poly_t input,
 
 /* Characteristic polynomial and minimal polynomial */
 
+FLINT_DLL void _nmod_mat_charpoly_berkowitz(mp_ptr p, const nmod_mat_t M, nmod_t mod);
+FLINT_DLL void nmod_mat_charpoly_berkowitz(nmod_poly_t p, const nmod_mat_t M);
 FLINT_DLL void nmod_mat_charpoly_danilevsky(nmod_poly_t p, const nmod_mat_t M);
-
-NMOD_POLY_INLINE
-void nmod_mat_charpoly(nmod_poly_t p, const nmod_mat_t M)
-{
-   nmod_mat_charpoly_danilevsky(p, M);
-}
+FLINT_DLL void nmod_mat_charpoly(nmod_poly_t p, const nmod_mat_t M);
 
 FLINT_DLL void nmod_mat_minpoly_with_gens(nmod_poly_t p, 
                                                 const nmod_mat_t X, ulong * P);

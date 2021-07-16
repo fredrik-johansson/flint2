@@ -97,9 +97,11 @@ Integers mod n
    nmod_mpoly.rst
    nmod_mpoly_factor.rst
    fmpz_mod.rst
+   fmpz_mod_mat.rst
    fmpz_mod_poly.rst
    fmpz_mod_poly_factor.rst
-   fmpz_mod_mat.rst
+   fmpz_mod_mpoly.rst
+   fmpz_mod_mpoly_factor.rst
 
 Finite fields
 ---------------
@@ -108,10 +110,14 @@ Finite fields
    :maxdepth: 1
 
    fq.rst
+   fq_default.rst
    fq_vec.rst
    fq_mat.rst
+   fq_default_mat.rst
    fq_poly.rst
+   fq_default_poly.rst
    fq_poly_factor.rst
+   fq_default_poly_factor.rst
    fq_embed.rst
 
 .. toctree::

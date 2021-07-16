@@ -9,10 +9,10 @@
     (at your option) any later version.  See <https://www.gnu.org/licenses/>.
 */
 
-#include "nmod_mpoly_factor.h"
+#include "n_poly.h"
 #include "mpn_extras.h"
 #include "nmod_vec.h"
-
+#include "mpoly.h"
 
 void n_polyu_clear(n_polyu_t A)
 {

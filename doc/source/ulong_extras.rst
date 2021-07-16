@@ -39,7 +39,7 @@ Random functions
     the given limit. If zero is passed as a parameter, an entire random
     limb is returned.
 
-.. function:: ulong n_urandint(flint_rant_t state, ulong limit)
+.. function:: ulong n_urandint(flint_rand_t state, ulong limit)
     
     Returns a uniformly pseudo random number up to but not including
     the given limit. If zero is passed as a parameter, an entire
@@ -543,6 +543,14 @@ Modular Arithmetic
     Returns `w'`, scaled approximation of `w / p`. `w'`  is equal to the integer 
     part of `w * 2^{\mathtt{FLINT\_BITS}} / p`.
 
+
+Divisibility testing
+--------------------------------------------------------------------------------
+
+.. function:: int n_divides(mp_limb_t * q, mp_limb_t n, mp_limb_t p)
+
+   Returns ``1`` if ``p`` divides ``n`` and sets ``q`` to the quotient,
+   otherwise return ``0`` and sets ``q`` to ``0``.
 
 Prime number generation and counting
 --------------------------------------------------------------------------------

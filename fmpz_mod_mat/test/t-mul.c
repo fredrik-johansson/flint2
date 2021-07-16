@@ -21,6 +21,7 @@
 int main(void)
 {
     fmpz_mod_mat_t A, B, B1, B2, C, C1, C2, D;
+    slong max_threads = 5;
     slong i;
     FLINT_TEST_INIT(state);
 
@@ -28,17 +29,24 @@ int main(void)
     fflush(stdout);
 
     /* test A*(B1+B1) = A*B1 + A*B2 */
-    for (i = 0; i < 1000 * flint_test_multiplier(); i++)
+    for (i = 0; i < 200 * flint_test_multiplier(); i++)
     {
         slong m, n, k;
-
         fmpz_t mod;
 
         fmpz_init(mod);
         fmpz_randtest_not_zero(mod, state, 200);
         fmpz_abs(mod, mod);
 
-        if (n_randint(state, 10) == 0)
+        flint_set_num_threads(n_randint(state, max_threads) + 1);
+
+        if (n_randint(state, 100) == 0)
+        {
+            m = n_randint(state, 300) + 100;
+            n = n_randint(state, 300) + 100;
+            k = n_randint(state, 300) + 100;
+        }
+        else if (n_randint(state, 10) == 0)
         {
             m = n_randint(state, 50);
             n = n_randint(state, 50);
@@ -71,8 +79,8 @@ int main(void)
 
         fmpz_mod_mat_mul(C1, A, B1);
         fmpz_mod_mat_mul(C2, A, B2);
-	fmpz_mod_mat_add(B, B1, B2);
-	fmpz_mod_mat_mul(C, A, B);
+        fmpz_mod_mat_add(B, B1, B2);
+        fmpz_mod_mat_mul(C, A, B);
         fmpz_mod_mat_add(D, C1, C2);
 
         if (!fmpz_mod_mat_equal(C, D))
@@ -106,6 +114,39 @@ int main(void)
         fmpz_mod_mat_clear(C2);
         fmpz_mod_mat_clear(D);
         fmpz_clear(mod);
+    }
+
+    /* Test aliasing with windows */
+    {
+        fmpz_mod_mat_t A, B, A_window;
+        fmpz_t p;
+
+        fmpz_init_set_ui(p, 3);
+
+        fmpz_mod_mat_init(A, 2, 2, p);
+        fmpz_mod_mat_init(B, 2, 2, p);
+
+        fmpz_mod_mat_window_init(A_window, A, 0, 0, 2, 2);
+
+        fmpz_mod_mat_one(A);
+        fmpz_mod_mat_one(B);
+        fmpz_set_ui(fmpz_mod_mat_entry(B, 0, 1), 1);
+        fmpz_set_ui(fmpz_mod_mat_entry(B, 1, 0), 1);
+
+        fmpz_mod_mat_mul(A_window, B, A_window);
+
+        if (!fmpz_mod_mat_equal(A, B))
+        {
+            flint_printf("FAIL: window aliasing failed\n");
+            fmpz_mod_mat_print_pretty(A); flint_printf("\n\n");
+            fmpz_mod_mat_print_pretty(B); flint_printf("\n\n");
+            flint_abort();
+        }
+
+        fmpz_clear(p);
+        fmpz_mod_mat_window_clear(A_window);
+        fmpz_mod_mat_clear(A);
+        fmpz_mod_mat_clear(B);
     }
 
     FLINT_TEST_CLEANUP(state);

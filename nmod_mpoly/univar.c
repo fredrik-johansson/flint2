@@ -69,6 +69,58 @@ void nmod_mpoly_univar_fit_length(nmod_mpoly_univar_t A,
     }
 }
 
+void nmod_mpoly_univar_set_coeff_ui(
+    nmod_mpoly_univar_t A,
+    ulong e,
+    const nmod_mpoly_t c,
+    const nmod_mpoly_ctx_t ctx)
+{
+    slong i, j;
+
+    for (i = A->length; i >= 0; i--)
+    {
+        int cmp = i > 0 ? fmpz_cmp_ui(A->exps + i - 1, e) : 1;
+
+        if (cmp > 0)
+        {
+            if (nmod_mpoly_is_zero(c, ctx))
+                return;
+
+            nmod_mpoly_univar_fit_length(A, A->length + 1, ctx);
+
+            for (j = A->length; j > i; j--)
+            {
+                nmod_mpoly_swap(A->coeffs + j, A->coeffs + j + 1, ctx);
+                fmpz_swap(A->exps + j, A->exps + j + 1);
+            }
+
+            A->length++;
+
+            fmpz_set_ui(A->exps + i, e);
+            nmod_mpoly_set(A->coeffs + i, c, ctx);
+            return;
+        }
+        else if (cmp == 0)
+        {
+            nmod_mpoly_set(A->coeffs + i, c, ctx);
+
+            if (!nmod_mpoly_is_zero(A->coeffs + i, ctx))
+                return;
+
+            A->length--;
+
+            for (j = i; j < A->length; j++)
+            {
+                nmod_mpoly_swap(A->coeffs + j, A->coeffs + j + 1, ctx);
+                fmpz_swap(A->exps + j, A->exps + j + 1);
+            }
+        }
+    }
+
+    FLINT_ASSERT(0 && "unreachable");
+    return;
+}
+
 void nmod_mpoly_univar_assert_canonical(nmod_mpoly_univar_t A,
                                                     const nmod_mpoly_ctx_t ctx)
 {
@@ -105,53 +157,54 @@ void nmod_mpoly_univar_print_pretty(const nmod_mpoly_univar_t A,
     }
 }
 
-static void _mpoly_rbnode_clear_sp(
+static void _tree_data_clear_sp(
     nmod_mpoly_univar_t A,
-    mpoly_rbtree_t tree,
-    mpoly_rbnode_t node)
+    mpoly_rbtree_ui_t tree,
+    slong idx,
+    const nmod_mpoly_ctx_t ctx)
 {
-    mpoly_rbnode_struct * left = node->left;
+    mpoly_rbnode_ui_struct * nodes = tree->nodes + 2;
+    nmod_mpoly_struct * data = (nmod_mpoly_struct *) tree->data;
 
-    if (node->right != tree->null)
-        _mpoly_rbnode_clear_sp(A, tree, node->right);
+    if (idx < 0)
+        return;
+
+    _tree_data_clear_sp(A, tree, nodes[idx].right, ctx);
 
     FLINT_ASSERT(A->length < A->alloc);
 
-    fmpz_set_si(A->exps + A->length, node->key);
-    nmod_mpoly_swap(A->coeffs + A->length, (nmod_mpoly_struct *)(node->data), NULL);
+    fmpz_set_ui(A->exps + A->length, nodes[idx].key);
+    nmod_mpoly_swap(A->coeffs + A->length, data + idx, ctx);
     A->length++;
 
-    nmod_mpoly_clear(node->data, NULL);
-    flint_free(node->data);
-    flint_free(node);
+    nmod_mpoly_clear(data + idx, ctx);
 
-    if (left != tree->null)
-        _mpoly_rbnode_clear_sp(A, tree, left);
+    _tree_data_clear_sp(A, tree, nodes[idx].left, ctx);
 }
 
-static void _mpoly_rbnode_clear_mp(
+static void _tree_data_clear_mp(
     nmod_mpoly_univar_t A,
-    mpoly_rbtree_t tree,
-    mpoly_rbnode_t node)
+    mpoly_rbtree_fmpz_t tree,
+    slong idx,
+    const nmod_mpoly_ctx_t ctx)
 {
-    mpoly_rbnode_struct * left = node->left;
+    mpoly_rbnode_fmpz_struct * nodes = tree->nodes + 2;
+    nmod_mpoly_struct * data = (nmod_mpoly_struct *) tree->data;
 
-    if (node->right != tree->null)
-        _mpoly_rbnode_clear_mp(A, tree, node->right);
+    if (idx < 0)
+        return;
+
+    _tree_data_clear_mp(A, tree, nodes[idx].right, ctx);
 
     FLINT_ASSERT(A->length < A->alloc);
 
-    fmpz_swap(A->exps + A->length, (fmpz*)(&node->key));
-    nmod_mpoly_swap(A->coeffs + A->length, (nmod_mpoly_struct *)(node->data), NULL);
+    fmpz_set(A->exps + A->length, nodes[idx].key);
+    nmod_mpoly_swap(A->coeffs + A->length, data + idx, ctx);
     A->length++;
 
-    fmpz_clear((fmpz*)(&node->key));
-    nmod_mpoly_clear(node->data, NULL);
-    flint_free(node->data);
-    flint_free(node);
+    nmod_mpoly_clear(data + idx, ctx);
 
-    if (left != tree->null)
-        _mpoly_rbnode_clear_mp(A, tree, left);
+    _tree_data_clear_mp(A, tree, nodes[idx].left, ctx);
 }
 
 
@@ -166,14 +219,10 @@ void nmod_mpoly_to_univar(nmod_mpoly_univar_t A, const nmod_mpoly_t B,
     const mp_limb_t * Bcoeff = B->coeffs;
     const ulong * Bexp = B->exps;
     slong i;
-    int new;
+    int its_new;
     ulong * one;
-    mpoly_rbtree_t tree;
-    mpoly_rbnode_struct * node;
-    nmod_mpoly_struct * d;
 #define LUT_limit (48)
     nmod_mpoly_struct LUT[LUT_limit];
-    TMP_INIT;
 
     if (B->length == 0)
     {
@@ -181,15 +230,17 @@ void nmod_mpoly_to_univar(nmod_mpoly_univar_t A, const nmod_mpoly_t B,
         return;
     }
 
-    TMP_START;
-
-    one = (ulong*) TMP_ALLOC(N*sizeof(ulong));
-
-    mpoly_rbtree_init(tree);
+    one = FLINT_ARRAY_ALLOC(N, ulong);
 
     if (bits <= FLINT_BITS)
     {
+        slong Alen;
+        mpoly_rbtree_ui_t tree;
+        nmod_mpoly_struct * d;
         ulong mask = (-UWORD(1)) >> (FLINT_BITS - bits);
+
+        mpoly_rbtree_ui_init(tree, sizeof(nmod_mpoly_struct));
+
         mpoly_gen_monomial_offset_shift_sp(one, &off, &shift,
                                                         var, bits, ctx->minfo);
         for (i = 0; i < LUT_limit; i++)
@@ -205,17 +256,9 @@ void nmod_mpoly_to_univar(nmod_mpoly_univar_t A, const nmod_mpoly_t B,
             }
             else
             {
-                node = mpoly_rbtree_get(&new, tree, k);
-                if (new)
-                {
-                    d = flint_malloc(sizeof(nmod_mpoly_struct));
+                d = mpoly_rbtree_ui_lookup(tree, &its_new, k);
+                if (its_new)
                     nmod_mpoly_init3(d, 4, bits, ctx);
-                    node->data = d;
-                }
-                else
-                {
-                    d = node->data;
-                }
             }
             nmod_mpoly_fit_length(d, d->length + 1, ctx);
             d->coeffs[d->length] = Bcoeff[i];
@@ -224,10 +267,15 @@ void nmod_mpoly_to_univar(nmod_mpoly_univar_t A, const nmod_mpoly_t B,
         }
 
         /* clear out tree to A */
-        nmod_mpoly_univar_fit_length(A, tree->size + LUT_limit, ctx);
+
+        Alen = tree->length;
+        for (i = LUT_limit - 1; i >= 0; i--)
+            Alen += (LUT[i].length > 0);
+
+        nmod_mpoly_univar_fit_length(A, Alen, ctx);
         A->length = 0;
-        if (tree->size > 0)
-            _mpoly_rbnode_clear_sp(A, tree, tree->head->left);
+
+        _tree_data_clear_sp(A, tree, mpoly_rbtree_ui_head(tree), ctx);
 
         for (i = LUT_limit - 1; i >= 0; i--)
         {
@@ -241,11 +289,17 @@ void nmod_mpoly_to_univar(nmod_mpoly_univar_t A, const nmod_mpoly_t B,
             }
             nmod_mpoly_clear(d, ctx);
         }
+
+        mpoly_rbtree_ui_clear(tree);
     }
     else
     {
+        mpoly_rbtree_fmpz_t tree;
+        nmod_mpoly_struct * d;
         fmpz_t k;
+
         fmpz_init(k);
+        mpoly_rbtree_fmpz_init(tree, sizeof(nmod_mpoly_struct));
 
         off = mpoly_gen_monomial_offset_mp(one, var, bits, ctx->minfo);
 
@@ -254,17 +308,10 @@ void nmod_mpoly_to_univar(nmod_mpoly_univar_t A, const nmod_mpoly_t B,
         {
             fmpz_set_ui_array(k, Bexp + N*i + off, bits/FLINT_BITS);
 
-            node = mpoly_rbtree_get_fmpz(&new, tree, k);
-            if (new)
-            {
-                d = flint_malloc(sizeof(nmod_mpoly_struct));
+            d = mpoly_rbtree_fmpz_lookup(tree, &its_new, k);
+            if (its_new)
                 nmod_mpoly_init3(d, 4, bits, ctx);
-                node->data = d;
-            }
-            else
-            {
-                d = node->data;
-            }
+
             nmod_mpoly_fit_length(d, d->length + 1, ctx);
             d->coeffs[d->length] = Bcoeff[i];
             mpoly_monomial_msub_ui_array(d->exps + N*d->length, Bexp + N*i,
@@ -273,15 +320,16 @@ void nmod_mpoly_to_univar(nmod_mpoly_univar_t A, const nmod_mpoly_t B,
         }
 
         /* clear out tree to A */
-        nmod_mpoly_univar_fit_length(A, tree->size, ctx);
+        nmod_mpoly_univar_fit_length(A, tree->length, ctx);
         A->length = 0;
-        FLINT_ASSERT(tree->size > 0);
-        _mpoly_rbnode_clear_mp(A, tree, tree->head->left);
+
+        _tree_data_clear_mp(A, tree, mpoly_rbtree_fmpz_head(tree), ctx);
 
         fmpz_clear(k);
+        mpoly_rbtree_fmpz_clear(tree);
     }
 
-    TMP_END;
+    flint_free(one);
 }
 
 
@@ -290,7 +338,7 @@ void nmod_mpoly_to_univar(nmod_mpoly_univar_t A, const nmod_mpoly_t B,
     The assertion x->next == NULL would need to be replaced by a loop.
     Other asserts would need to be removed as well.
 */
-void nmod_mpoly_from_univar_bits(
+void _nmod_mpoly_from_univar(
     nmod_mpoly_t A,
     flint_bitcnt_t Abits,
     const nmod_mpoly_univar_t B,
@@ -489,6 +537,119 @@ void nmod_mpoly_from_univar(nmod_mpoly_t A, const nmod_mpoly_univar_t B,
     }
     TMP_END;
 
-    nmod_mpoly_from_univar_bits(A, bits, B, var, ctx);
+    _nmod_mpoly_from_univar(A, bits, B, var, ctx);
+}
+
+#define COEFF(A, i) ((void*)(A->coeffs + (i)*R->elem_size))
+
+static void mpoly_univar_set_nmod_mpoly_univar(
+    mpoly_univar_t A,
+    mpoly_void_ring_t R,
+    const nmod_mpoly_univar_t B,
+    const nmod_mpoly_ctx_t ctx)
+{
+    slong i;
+
+    mpoly_univar_fit_length(A, B->length, R);
+    A->length = B->length;
+
+    for (i = B->length - 1; i >= 0; i--)
+    {
+        fmpz_set(A->exps + i, B->exps + i);
+        nmod_mpoly_set(COEFF(A, i), B->coeffs + i, ctx);
+    }
+}
+
+static void mpoly_univar_swap_nmod_mpoly_univar(
+    mpoly_univar_t A,
+    mpoly_void_ring_t R,
+    nmod_mpoly_univar_t B,
+    const nmod_mpoly_ctx_t ctx)
+{
+    slong i;
+
+    mpoly_univar_fit_length(A, B->length, R);
+    nmod_mpoly_univar_fit_length(B, A->length, ctx);
+
+    for (i = FLINT_MAX(A->length, B->length) - 1; i >= 0; i--)
+    {
+        fmpz_swap(A->exps + i, B->exps + i);
+        nmod_mpoly_swap(COEFF(A, i), B->coeffs + i, ctx);
+    }
+
+    SLONG_SWAP(A->length, B->length);
+}
+
+int nmod_mpoly_univar_pseudo_gcd(
+    nmod_mpoly_univar_t gx,
+    const nmod_mpoly_univar_t ax,
+    const nmod_mpoly_univar_t bx,
+    const nmod_mpoly_ctx_t ctx)
+{
+    int success;
+    mpoly_void_ring_t R;
+    mpoly_univar_t Ax, Bx, Gx;
+
+    mpoly_void_ring_init_nmod_mpoly_ctx(R, ctx);
+    mpoly_univar_init(Ax, R);
+    mpoly_univar_init(Bx, R);
+    mpoly_univar_init(Gx, R);
+    mpoly_univar_set_nmod_mpoly_univar(Ax, R, ax, ctx);
+    mpoly_univar_set_nmod_mpoly_univar(Bx, R, bx, ctx);
+
+    success = mpoly_univar_pseudo_gcd_ducos(Gx, Ax, Bx, R);
+
+    if (success)
+        mpoly_univar_swap_nmod_mpoly_univar(Gx, R, gx, ctx);
+
+    mpoly_univar_clear(Ax, R);
+    mpoly_univar_clear(Bx, R);
+    mpoly_univar_clear(Gx, R);
+
+    return success;
+}
+
+int nmod_mpoly_univar_resultant(
+    nmod_mpoly_t d,
+    const nmod_mpoly_univar_t ax,
+    const nmod_mpoly_univar_t bx,
+    const nmod_mpoly_ctx_t ctx)
+{
+    int success;
+    mpoly_void_ring_t R;
+    mpoly_univar_t Ax, Bx;
+
+    mpoly_void_ring_init_nmod_mpoly_ctx(R, ctx);
+    mpoly_univar_init(Ax, R);
+    mpoly_univar_init(Bx, R);
+    mpoly_univar_set_nmod_mpoly_univar(Ax, R, ax, ctx);
+    mpoly_univar_set_nmod_mpoly_univar(Bx, R, bx, ctx);
+
+    success = mpoly_univar_resultant(d, Ax, Bx, R);
+
+    mpoly_univar_clear(Ax, R);
+    mpoly_univar_clear(Bx, R);
+
+    return success;
+}
+
+int nmod_mpoly_univar_discriminant(
+    nmod_mpoly_t d,
+    const nmod_mpoly_univar_t fx,
+    const nmod_mpoly_ctx_t ctx)
+{
+    int success;
+    mpoly_void_ring_t R;
+    mpoly_univar_t Fx;
+
+    mpoly_void_ring_init_nmod_mpoly_ctx(R, ctx);
+    mpoly_univar_init(Fx, R);
+    mpoly_univar_set_nmod_mpoly_univar(Fx, R, fx, ctx);
+
+    success = mpoly_univar_discriminant(d, Fx, R);
+
+    mpoly_univar_clear(Fx, R);
+
+    return success;
 }
 

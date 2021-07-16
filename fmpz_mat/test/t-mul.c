@@ -1,5 +1,6 @@
 /*
     Copyright (C) 2010 Fredrik Johansson
+    Copyright (C) 2021 William Hart
 
     This file is part of FLINT.
 
@@ -17,11 +18,6 @@
 #include "fmpz_vec.h"
 #include "fmpz_mat.h"
 #include "ulong_extras.h"
-
-void fmpz_mat_mul_1(fmpz_mat_t C, const fmpz_mat_t A, const fmpz_mat_t B);
-void fmpz_mat_mul_2a(fmpz_mat_t C, const fmpz_mat_t A, const fmpz_mat_t B);
-void fmpz_mat_mul_2b(fmpz_mat_t C, const fmpz_mat_t A, const fmpz_mat_t B);
-void fmpz_mat_mul_4(fmpz_mat_t C, const fmpz_mat_t A, const fmpz_mat_t B);
 
 int main(void)
 {
@@ -82,11 +78,11 @@ int main(void)
 
         if (bits <= FLINT_BITS - 2)
         {
-            fmpz_mat_mul_1(C, A, B);
+            _fmpz_mat_mul_small_1(C, A, B);
 
             if (!fmpz_mat_equal(C, D))
             {
-                flint_printf("FAIL: results not equal (mul_1)\n\n");
+                flint_printf("FAIL: results not equal (mul_small_1)\n\n");
                 fmpz_mat_print(A); flint_printf("\n\n");
                 fmpz_mat_print(B); flint_printf("\n\n");
                 fmpz_mat_print(C); flint_printf("\n\n");
@@ -97,11 +93,11 @@ int main(void)
 
         if (abits <= FLINT_BITS - 2 && bbits <= FLINT_BITS - 2 && bits <= 2 * FLINT_BITS - 1)
         {
-            fmpz_mat_mul_2a(C, A, B);
+            _fmpz_mat_mul_small_2a(C, A, B);
 
             if (!fmpz_mat_equal(C, D))
             {
-                flint_printf("FAIL: results not equal (mul_2a)\n\n");
+                flint_printf("FAIL: results not equal (mul_small_2a)\n\n");
                 fmpz_mat_print(A); flint_printf("\n\n");
                 fmpz_mat_print(B); flint_printf("\n\n");
                 fmpz_mat_print(C); flint_printf("\n\n");
@@ -112,11 +108,11 @@ int main(void)
 
         if (abits <= FLINT_BITS - 2 && bbits <= FLINT_BITS - 2)
         {
-            fmpz_mat_mul_2b(C, A, B);
+            _fmpz_mat_mul_small_2b(C, A, B);
 
             if (!fmpz_mat_equal(C, D))
             {
-                flint_printf("FAIL: results not equal (mul_2b)\n\n");
+                flint_printf("FAIL: results not equal (mul_small_2b)\n\n");
                 fmpz_mat_print(A); flint_printf("\n\n");
                 fmpz_mat_print(B); flint_printf("\n\n");
                 fmpz_mat_print(C); flint_printf("\n\n");
@@ -125,13 +121,13 @@ int main(void)
             }
         }
 
-        if (abits <= 2 * FLINT_BITS && bbits <= 2 * FLINT_BITS && bits <= 4 * FLINT_BITS - 1)
+        if (abits < 2 * FLINT_BITS && bbits < 2 * FLINT_BITS)
         {
-            fmpz_mat_mul_4(C, A, B);
+            _fmpz_mat_mul_double_word(C, A, B);
 
             if (!fmpz_mat_equal(C, D))
             {
-                flint_printf("FAIL: results not equal (mul_4)\n\n");
+                flint_printf("FAIL: results not equal (mul_double_word)\n\n");
                 fmpz_mat_print(A); flint_printf("\n\n");
                 fmpz_mat_print(B); flint_printf("\n\n");
                 fmpz_mat_print(C); flint_printf("\n\n");
@@ -155,6 +151,35 @@ int main(void)
         fmpz_mat_clear(B);
         fmpz_mat_clear(C);
         fmpz_mat_clear(D);
+    }
+
+    /* Test aliasing with windows */
+    {
+        fmpz_mat_t A, B, A_window;
+
+        fmpz_mat_init(A, 2, 2);
+        fmpz_mat_init(B, 2, 2);
+
+        fmpz_mat_window_init(A_window, A, 0, 0, 2, 2);
+
+        fmpz_mat_one(A);
+        fmpz_mat_one(B);
+        fmpz_set_ui(fmpz_mat_entry(B, 0, 1), 1);
+        fmpz_set_ui(fmpz_mat_entry(B, 1, 0), 1);
+
+        fmpz_mat_mul(A_window, B, A_window);
+
+        if (!fmpz_mat_equal(A, B))
+        {
+            flint_printf("FAIL: window aliasing failed\n");
+	    fmpz_mat_print(A); flint_printf("\n\n");
+	    fmpz_mat_print(B); flint_printf("\n\n");
+            flint_abort();
+        }
+
+        fmpz_mat_window_clear(A_window);
+        fmpz_mat_clear(A);
+        fmpz_mat_clear(B);
     }
 
     FLINT_TEST_CLEANUP(state);

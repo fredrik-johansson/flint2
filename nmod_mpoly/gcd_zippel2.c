@@ -142,10 +142,10 @@ void _nmod_mpoly_monomial_evals2_cache(
     e1 = (Aexps[N*Ai + off[1]] >> shift[1]) & mask;
     e01 = pack_exp2(e0, e1);
     n_polyun_fit_length(E, Ei + 1);
-    E->terms[Ei].exp = e01;
-    n_poly_fit_length(E->terms[Ei].coeff, 1);
-    c = E->terms[Ei].coeff->coeffs + 0;
-    E->terms[Ei].coeff->length = 1;
+    E->exps[Ei] = e01;
+    n_poly_fit_length(E->coeffs + Ei, 1);
+    c = E->coeffs[Ei].coeffs + 0;
+    E->coeffs[Ei].length = 1;
     Ei++;
     *c = 1;
     for (i = 2; i < m; i++)
@@ -161,20 +161,20 @@ void _nmod_mpoly_monomial_evals2_cache(
         e0 = (Aexps[N*Ai + off[0]] >> shift[0]) & mask;
         e1 = (Aexps[N*Ai + off[1]] >> shift[1]) & mask;
         e01 = pack_exp2(e0, e1);
-        if (e01 == E->terms[Ei-1].exp)
+        if (e01 == E->exps[Ei - 1])
         {
-            slong len = E->terms[Ei-1].coeff->length;
-            n_poly_fit_length(E->terms[Ei-1].coeff, len + 1);
-            c = E->terms[Ei-1].coeff->coeffs + len;
-            E->terms[Ei-1].coeff->length = len + 1;
+            slong len = E->coeffs[Ei - 1].length;
+            n_poly_fit_length(E->coeffs + Ei - 1, len + 1);
+            c = E->coeffs[Ei - 1].coeffs + len;
+            E->coeffs[Ei - 1].length = len + 1;
         }
         else
         {
             n_polyun_fit_length(E, Ei + 1);
-            E->terms[Ei].exp = e01;
-            n_poly_fit_length(E->terms[Ei].coeff, 1);
-            c = E->terms[Ei].coeff->coeffs + 0;
-            E->terms[Ei].coeff->length = 1;
+            E->exps[Ei] = e01;
+            n_poly_fit_length(E->coeffs + Ei, 1);
+            c = E->coeffs[Ei].coeffs + 0;
+            E->coeffs[Ei].length = 1;
             Ei++;
         }
 
@@ -202,7 +202,7 @@ void _nmod_mpoly_monomial_evals2_cache(
 #if FLINT_WANT_ASSERT
     Ai = 0;
     for (i = 0; i < E->length; i++)
-        Ai += E->terms[i].coeff->length;
+        Ai += E->coeffs[i].length;
     FLINT_ASSERT(Ai == Alen);
 #endif
 }
@@ -221,115 +221,6 @@ static ulong _fq_nmod_mpoly_bidegree(
 {
     FLINT_ASSERT(A->length > 0);
     return _mpoly_bidegree(A->exps, A->bits, ctx->minfo);
-}
-
-static void n_polyun_zip_start(n_polyun_t Z, n_polyun_t H, slong req_images)
-{
-    slong j;
-    n_polyun_fit_length(Z, H->length);
-    Z->length = H->length;
-    for (j = 0; j < H->length; j++)
-    {
-        Z->terms[j].exp = H->terms[j].exp;
-        n_poly_fit_length(Z->terms[j].coeff, req_images);
-        Z->terms[j].coeff->length = 0;
-    }
-}
-
-
-int n_polyu2n_add_zip_must_match(
-    n_polyun_t Z,
-    const n_bpoly_t A,
-    slong cur_length)
-{
-    slong i, Ai, ai;
-    n_polyun_term_struct * Zt = Z->terms;
-    const n_poly_struct * Acoeffs = A->coeffs;
-
-    Ai = A->length - 1;
-    ai = (Ai < 0) ? 0 : n_poly_degree(A->coeffs + Ai);
-
-    for (i = 0; i < Z->length; i++)
-    {
-        if (Ai >= 0 && Zt[i].exp == pack_exp2(Ai, ai))
-        {
-            /* Z present, A present */
-            Zt[i].coeff->coeffs[cur_length] = Acoeffs[Ai].coeffs[ai];
-            Zt[i].coeff->length = cur_length + 1;
-            do {
-                ai--;
-            } while (ai >= 0 && Acoeffs[Ai].coeffs[ai] == 0);
-            if (ai < 0)
-            {
-                do {
-                    Ai--;
-                } while (Ai >= 0 && Acoeffs[Ai].length == 0);
-                if (Ai >= 0)
-                    ai = n_poly_degree(Acoeffs + Ai);
-            }
-        }
-        else if (Ai < 0 || Zt[i].exp > pack_exp2(Ai, ai))
-        {
-            /* Z present, A missing */
-            Zt[i].coeff->coeffs[cur_length] = 0;
-            Zt[i].coeff->length = cur_length + 1;
-        }
-        else
-        {
-            /* Z missing, A present */
-            return 0;
-        }
-    }
-
-    return 1;
-}
-
-static int n_polyun_zip_solve(
-    nmod_mpoly_t A,
-    n_polyun_t Z,
-    n_polyun_t H,
-    n_polyun_t M,
-    const nmod_mpoly_ctx_t ctx)
-{
-    int success;
-    slong Ai, i, n;
-    mp_limb_t * Acoeffs = A->coeffs;
-    n_poly_t t;
-
-    n_poly_init(t);
-
-    FLINT_ASSERT(Z->length == H->length);
-    FLINT_ASSERT(Z->length == M->length);
-
-    Ai = 0;
-    for (i = 0; i < H->length; i++)
-    {
-        n = H->terms[i].coeff->length;
-        FLINT_ASSERT(M->terms[i].coeff->length == n + 1);
-        FLINT_ASSERT(Z->terms[i].coeff->length >= n);
-        FLINT_ASSERT(Ai + n <= A->length);
-
-        n_poly_fit_length(t, n);
-
-        success = _nmod_zip_vand_solve(Acoeffs + Ai,
-                         H->terms[i].coeff->coeffs, n,
-                         Z->terms[i].coeff->coeffs, Z->terms[i].coeff->length,
-                         M->terms[i].coeff->coeffs, t->coeffs, ctx->mod);
-        if (success < 1)
-        {
-            n_poly_clear(t);
-            return success;
-        }
-
-        Ai += n;
-        FLINT_ASSERT(Ai <= A->length);
-
-    }
-
-    FLINT_ASSERT(Ai == A->length);
-
-    n_poly_clear(t);
-    return 1;
 }
 
 
@@ -414,8 +305,8 @@ int nmod_mpoly_gcd_get_use_new(
         maxnumci = totnumci = 0;
         for (i = 0; i < G->length; i++)
         {
-            maxnumci = FLINT_MAX(maxnumci, G->terms[i].coeff->length);
-            totnumci += G->terms[i].coeff->length;
+            maxnumci = FLINT_MAX(maxnumci, G->coeffs[i].length);
+            totnumci += G->coeffs[i].length;
         }
         FLINT_ASSERT(Gdeg >= 0);
         Gcost = interp_cost(Gdeg,
@@ -424,8 +315,8 @@ int nmod_mpoly_gcd_get_use_new(
         maxnumci = totnumci = 0;
         for (i = 0; i < Abar->length; i++)
         {
-            maxnumci = FLINT_MAX(maxnumci, Abar->terms[i].coeff->length);
-            totnumci += Abar->terms[i].coeff->length;
+            maxnumci = FLINT_MAX(maxnumci, Abar->coeffs[i].length);
+            totnumci += Abar->coeffs[i].length;
         }
         FLINT_ASSERT(gammadeg + Adeg - Gdeg >= 0);
         Abarcost = interp_cost(gammadeg + Adeg - Gdeg,
@@ -434,8 +325,8 @@ int nmod_mpoly_gcd_get_use_new(
         maxnumci = totnumci = 0;
         for (i = 0; i < Bbar->length; i++)
         {
-            maxnumci = FLINT_MAX(maxnumci, Bbar->terms[i].coeff->length);
-            totnumci += Bbar->terms[i].coeff->length;
+            maxnumci = FLINT_MAX(maxnumci, Bbar->coeffs[i].length);
+            totnumci += Bbar->coeffs[i].length;
         }
         FLINT_ASSERT(gammadeg + Bdeg - Gdeg >= 0);
         Bbarcost = interp_cost(gammadeg + Bdeg - Gdeg,
@@ -456,18 +347,6 @@ int nmod_mpoly_gcd_get_use_new(
 
     return use;
 }
-
-void nmod_mpoly_cvtfrom_mpolyn(
-    nmod_mpoly_t A,
-    const nmod_mpolyn_t B,
-    slong var,
-    const nmod_mpoly_ctx_t ctx);
-
-void nmod_mpolyn_interp_lift_sm_mpoly(
-    nmod_mpolyn_t A,
-    const nmod_mpoly_t B,
-    const nmod_mpoly_ctx_t ctx);
-
 
 mp_limb_t n_poly_mod_eval_step_sep(
     n_poly_t cur,
@@ -508,15 +387,14 @@ void static n_bpoly_mod_eval_step_sep(
     Ai = 0;
     for (i = 0; i < cur->length; i++)
     {
-        slong this_len = cur->terms[i].coeff->length;
+        slong this_len = cur->coeffs[i].length;
 
-        c = _nmod_zip_eval_step(cur->terms[i].coeff->coeffs,
-                                  inc->terms[i].coeff->coeffs,
+        c = _nmod_zip_eval_step(cur->coeffs[i].coeffs, inc->coeffs[i].coeffs,
                                   A->coeffs + Ai, this_len, ctx->mod);
         Ai += this_len;
 
-        e0 = extract_exp(cur->terms[i].exp, 1, 2);
-        e1 = extract_exp(cur->terms[i].exp, 0, 2);
+        e0 = extract_exp(cur->exps[i], 1, 2);
+        e1 = extract_exp(cur->exps[i], 0, 2);
         if (c == 0)
             continue;
 

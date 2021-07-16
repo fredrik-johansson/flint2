@@ -1,5 +1,6 @@
 /*
      Copyright (C) 2020 Vincent Delecroix
+     Copyright (C) 2021 Fredrik Johansson
 
      This file is part of FLINT.
 
@@ -20,70 +21,70 @@ main(void)
 
     FLINT_TEST_INIT(state);
 
-    flint_printf("add_sub_fmpq.c....");
+    flint_printf("add_sub_fmpq....");
     fflush(stdout);
 
-    /* test b + c - c = b */
-    for (i = 0; i < 100; i++)
+    for (i = 0; i < 1000 * flint_test_multiplier(); i++)
     {
-        fmpq_poly_t a, b, t;
+        fmpq_poly_t a, s, t;
         fmpq_t c;
+        int op, alias;
 
         fmpq_poly_init(a);
-        fmpq_poly_init(b);
+        fmpq_poly_init(s);
         fmpq_poly_init(t);
         fmpq_init(c);
 
-        fmpq_poly_randtest(b, state, 10, 200);
-        fmpq_randtest(c, state, 200);
+        fmpq_poly_randtest(a, state, 1 + n_randint(state, 4), 1 + n_randint(state, 200));
+        fmpq_poly_randtest(s, state, 4, 200);
+        fmpq_poly_randtest(t, state, 4, 200);
+        fmpq_randtest(c, state, 1 + n_randint(state, 200));
 
-        fmpq_poly_add_fmpq(t, b, c);
-        fmpq_poly_sub_fmpq(a, t, c);
+        op = n_randint(state, 3);
+        alias = n_randint(state, 3);
 
-        if (!fmpq_poly_equal(a, b))
+        fmpq_poly_set_fmpq(s, c);
+        if (op == 0)
+            fmpq_poly_add(s, a, s);
+        else if (op == 1)
+            fmpq_poly_sub(s, a, s);
+        else
+            fmpq_poly_sub(s, s, a);
+
+        if (alias)
         {
-           printf("FAIL:\n");
+            if (op == 0)
+                fmpq_poly_add_fmpq(t, a, c);
+            else if (op == 1)
+                fmpq_poly_sub_fmpq(t, a, c);
+            else
+                fmpq_poly_fmpq_sub(t, c, a);
+        }
+        else
+        {
+            fmpq_poly_set(t, a);
+
+            if (op == 0)
+                fmpq_poly_add_fmpq(t, t, c);
+            else if (op == 1)
+                fmpq_poly_sub_fmpq(t, t, c);
+            else
+                fmpq_poly_fmpq_sub(t, c, t);
+        }
+
+        if (!fmpq_poly_equal(s, t))
+        {
+           printf("FAIL (op = %d, alias = %d):\n", op, alias);
            printf("a = "); fmpq_poly_print(a); printf("\n");
-           printf("b = "); fmpq_poly_print(b); printf("\n");
+           printf("s = "); fmpq_poly_print(s); printf("\n");
+           printf("t = "); fmpq_poly_print(t); printf("\n");
            printf("c = "); fmpq_print(c); printf("\n");
            abort();
         }
 
         fmpq_poly_clear(a);
-        fmpq_poly_clear(b);
+        fmpq_poly_clear(s);
         fmpq_poly_clear(t);
-        fmpq_clear(c);
-    }
-
-    /* test aliasing a and b */
-    for (i = 0; i < 100; i++)
-    {
-        fmpq_poly_t a, b;
-        fmpq_t c;
-
-        fmpq_poly_init(a);
-        fmpq_poly_init(b);
-        fmpq_init(c);
-
-        fmpq_poly_randtest(b, state, 10, 200);
-        fmpq_randtest(c, state, 200);
-
-        fmpq_poly_set(a, b);
-        fmpq_poly_add_fmpq(b, b, c);
-        fmpq_poly_sub_fmpq(b, b, c);
-
-        if (!fmpq_poly_equal(a, b))
-        {
-           printf("FAIL:\n");
-           printf("(with aliasing)\n");
-           printf("a = "); fmpq_poly_print(a); printf("\n");
-           printf("b = "); fmpq_poly_print(b); printf("\n");
-           printf("c = "); fmpq_print(c); printf("\n");
-           abort();
-        }
-
-        fmpq_poly_clear(a);
-        fmpq_poly_clear(b);
         fmpq_clear(c);
     }
 
